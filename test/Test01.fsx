@@ -18,5 +18,34 @@ Environment.SetEnvironmentVariable("PATH",
     )
 
 
-#load "..\src\SLSqlite\SqliteConn.fs"
-open SLSqlite.SqliteConn
+#load "..\src\SLSqlite\SqliteDb.fs"
+open SLSqlite.SqliteDb
+
+let localFile (relpath : string) = 
+    Path.Combine(__SOURCE_DIRECTORY__, "..", relpath)
+
+let demo01 () = 
+    let dbPath = localFile @"output\authors.sqlite"
+    let connParams = sqliteConnParamsVersion3 dbPath
+    let sqlCreateTable = 
+        "CREATE TABLE writers (\
+         name TEXT UNIQUE PRIMARY KEY NOT NULL,\
+         country TEXT);"
+
+    let sqlInsert = 
+        "INSERT INTO writers(name, country) \
+         VALUES \
+         ('Enrique Vila-Matas', 'Spain'),\
+         ('Bae Suah', 'South Korea');"
+
+    match createDatabase dbPath with
+    | Error ex -> Error ex.Message
+    | Ok _ -> 
+        runSqliteDb connParams 
+            <| sqliteDb { 
+                    let! _ = executeNonQuery sqlCreateTable
+                    let! _ = executeNonQuery sqlInsert
+                    return ()
+                    }
+    
+     
