@@ -12,6 +12,9 @@ module SqliteDb =
 
     open System.Data
     open System.Data.SQLite
+    open FSharp.Core
+
+    open SLSqlite.Utils
     
     type ErrMsg = string
 
@@ -519,11 +522,10 @@ module SqliteDb =
         executeNonQuery query
 
 
-    let escapeString (source: string) : string = 
-        source.Replace("'", "''")
+    
 
 
     let stringValue (source : string) : string = 
         match source with
         | null -> ""
-        | _ -> escapeString source
+        | _ -> escapeQuotes source
