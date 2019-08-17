@@ -486,18 +486,19 @@ module SqliteDb =
     //        resultset
 
     // The read procedure (proc) is expected to read from a single row.
-    let executeReaderList (statement:string) (proc:SQLite.SQLiteDataReader -> 'a) : SqliteDb<'a list> =
-        liftConn <| fun conn -> 
+    let executeReaderList (statement:string) (proc:RowReader -> 'a) : SqliteDb<'a list> =
+        SqliteDb <| fun conn -> 
             let cmd : SQLiteCommand = new SQLiteCommand(statement, conn)
             let reader = cmd.ExecuteReader()
-            let rec work cont = 
+            let rec work fk sk = 
                 match reader.Read () with
-                | false -> cont []
+                | false -> sk []
                 | true -> 
-                    let a1 = proc reader
-                    work (fun xs -> 
-                    cont (a1 :: xs))
-            let results = work (fun x -> x)
+                    match applyRowReader proc reader with
+                    | Error msg -> fk msg
+                    | Ok a1 -> 
+                        work fk (fun xs -> sk (a1 :: xs))
+            let results = work (fun x -> Error x) (fun x -> Ok x)
             reader.Close()
             results
 

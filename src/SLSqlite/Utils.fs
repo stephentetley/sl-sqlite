@@ -38,13 +38,64 @@ module Utils =
 
 
     /// Using SQLite's SQLiteDataReader directly is too often permissive 
-    /// as it grants access to the traversal and the current row.
+    /// as it grants access to both the traversal and the current row.
     /// Potentially we want to wrap SQLiteDataReader and just expose 
     /// the row reading functions.
     [<Struct>]
     type RowReader = 
         | RowReader of SQLiteDataReader
 
+
+        member x.GetDataTypeName(i :int) : string = 
+            let (RowReader reader) = x in reader.GetDataTypeName(i)
+        
+        member x.GetName(i :int) : string = 
+            let (RowReader reader) = x in reader.GetName(i)
+
+        member x.GetOrdinal(name :string) : int = 
+            let (RowReader reader) = x in reader.GetOrdinal(name)
+
+
+        member x.GetBlob(i : int, readOnly : bool) : SQLiteBlob = 
+            let (RowReader reader) = x in reader.GetBlob(i, readOnly)
+
+        member x.GetBoolean(i : int) : bool = 
+            let (RowReader reader) = x in reader.GetBoolean(i)
+
+        member x.GetByte(i : int) : byte = 
+            let (RowReader reader) = x in reader.GetByte(i)
+        
+        member x.GetDateTime(i : int) : System.DateTime = 
+            let (RowReader reader) = x in reader.GetDateTime(i)
+
+        member x.GetDecimal(i : int) : decimal = 
+            let (RowReader reader) = x in reader.GetDecimal(i)
+
+        member x.GetDouble(i : int) : double = 
+            let (RowReader reader) = x in reader.GetDouble(i)
+        
+        member x.GetFloat(i : int) : single = 
+            let (RowReader reader) = x in reader.GetFloat(i)
+
+        member x.GetInt16(i : int) : int16 = 
+            let (RowReader reader) = x in reader.GetInt16(i)
+
+        member x.GetInt32(i : int) : int32 = 
+            let (RowReader reader) = x in reader.GetInt32(i)
+
+        member x.GetInt64(i : int) : int64 = 
+            let (RowReader reader) = x in reader.GetInt64(i)
+
         member x.GetString(i : int) : string = 
-            match x with
-            | RowReader reader -> reader.GetString(i)
+            let (RowReader reader) = x in reader.GetString(i)
+
+        member x.GetValue(i : int) : obj = 
+            let (RowReader reader) = x in reader.GetValue(i)
+        
+        
+    let internal applyRowReader (proc : RowReader -> 'a) (handle : SQLiteDataReader) : Result<'a, string> = 
+        try 
+            proc (RowReader handle) |> Ok
+        with
+        | expn -> Error expn.Message
+

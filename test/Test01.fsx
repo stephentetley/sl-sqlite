@@ -26,6 +26,7 @@ open FSharp.Core
 
 #load "..\src\SLSqlite\Utils.fs"
 #load "..\src\SLSqlite\SqliteDb.fs"
+open SLSqlite.Utils
 open SLSqlite.SqliteDb
 
 let localFile (relpath : string) = 
@@ -59,7 +60,7 @@ let demo02 () =
     let dbPath = localFile @"output\authors.sqlite"
     let connParams = sqliteConnParamsVersion3 dbPath
     let query1 = "SELECT * FROM authors;"    
-    let reader1 (reader:SQLiteDataReader) : string * string = 
+    let reader1 (reader : RowReader) : string * string = 
         let name = reader.GetString(0)
         let country = reader.GetString(1) 
         (name, country)
