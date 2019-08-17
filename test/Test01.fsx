@@ -35,12 +35,12 @@ let demo01 () =
     let dbPath = localFile @"output\authors.sqlite"
     let connParams = sqliteConnParamsVersion3 dbPath
     let sqlCreateTable = 
-        "CREATE TABLE writers (\
+        "CREATE TABLE authors (\
          name TEXT UNIQUE PRIMARY KEY NOT NULL,\
          country TEXT);"
 
     let sqlInsert = 
-        "INSERT INTO writers(name, country) \
+        "INSERT INTO authors (name, country) \
          VALUES \
          ('Enrique Vila-Matas', 'Spain'),\
          ('Bae Suah', 'South Korea');"
@@ -53,7 +53,21 @@ let demo01 () =
                     let! _ = executeNonQuery sqlCreateTable
                     let! _ = executeNonQuery sqlInsert
                     return ()
-                    }
+                }
+
+let demo02 () = 
+    let dbPath = localFile @"output\authors.sqlite"
+    let connParams = sqliteConnParamsVersion3 dbPath
+    let query1 = "SELECT * FROM authors;"    
+    let reader1 (reader:SQLiteDataReader) : string * string = 
+        let name = reader.GetString(0)
+        let country = reader.GetString(1) 
+        (name, country)
+
+    runSqliteDb connParams 
+        <| sqliteDb { 
+                return! executeReaderList query1 reader1 
+            }
     
      
      

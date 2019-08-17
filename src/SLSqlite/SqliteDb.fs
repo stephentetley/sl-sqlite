@@ -9,10 +9,13 @@ namespace SLSqlite
 module SqliteDb = 
 
     open System.Collections.Generic
-
     open System.Data
-    open System.Data.SQLite
+    open System.Transactions
+    
     open FSharp.Core
+
+    open System.Data.SQLite
+
 
     open SLSqlite.Utils
     
@@ -53,25 +56,14 @@ module SqliteDb =
 
     let failM (msg:string) : SqliteDb<'a> = SqliteDb (fun r -> Error msg)
 
-    let withTransaction (ma : SqliteDb<'a>) : SqliteDb<'a> = 
-        SqliteDb <| fun conn -> 
-            let trans = conn.BeginTransaction(System.Data.IsolationLevel.ReadCommitted)
-            try 
-                match apply1 ma conn with
-                | Ok a -> trans.Commit () ; Ok a
-                | Error msg -> trans.Rollback () ; Error msg
-            with 
-            | ex -> trans.Rollback() ; Error ( ex.ToString() )
+    
 
 
 
-    /// TODO - this needs thought...
-    /// If we have transactions then it is likely this should 
-    /// be "first success".
-    /// Currently it is ">>." (ma & mb, returning b)
-    let inline private combineM  (ma : SqliteDb<unit>) 
+    
+    let inline private altM  (ma : SqliteDb<unit>) 
                                  (mb : SqliteDb<'b>) : SqliteDb<'b> = 
-        withTransaction << SqliteDb <| fun conn -> 
+        SqliteDb <| fun conn -> 
             match apply1 ma conn, apply1 mb conn with
             | Ok _, Ok b -> Ok b
             | Error msg, _ -> Error msg
@@ -85,7 +77,7 @@ module SqliteDb =
         member self.Return x        = mreturn x
         member self.Bind (p,f)      = bindM p f
         member self.Zero ()         = failM "Zero"
-        member self.Combine (p,q)   = combineM p q
+        member self.Combine (p,q)   = altM p q
         member self.Delay fn        = delayM fn
         member self.ReturnFrom(ma)  = ma
 
@@ -113,6 +105,22 @@ module SqliteDb =
             with
                 | _ -> Error "liftOperation" 
 
+    
+    let liftOperationOption (operation : unit -> 'a option) : SqliteDb<'a> = 
+        SqliteDb <| fun _ -> 
+            try 
+                match operation () with
+                | Some ans -> Ok ans
+                | None -> Error "liftOperationOption"
+            with
+                | _ -> Error "liftOperationOption" 
+
+    let liftOperationResult (operation : unit -> Result<'a, ErrMsg>) : SqliteDb<'a> = 
+        SqliteDb <| fun _ -> 
+            try 
+                operation ()
+            with
+                | _ -> Error "liftOperationResult" 
 
     let liftConn (proc:SQLite.SQLiteConnection -> 'a) : SqliteDb<'a> = 
         SqliteDb <| fun conn -> 
@@ -134,6 +142,18 @@ module SqliteDb =
             let ans = proc reader
             reader.Close()
             ans
+
+
+    let withTransaction (ma : SqliteDb<'a>) : SqliteDb<'a> = 
+        SqliteDb <| fun conn -> 
+            let trans = conn.BeginTransaction(System.Data.IsolationLevel.ReadCommitted)
+            try 
+                match apply1 ma conn with
+                | Ok a -> trans.Commit () ; Ok a
+                | Error msg -> trans.Rollback () ; Error msg
+            with 
+            | ex -> trans.Rollback() ; Error ( ex.ToString() )
+
 
 
     // ************************************************************************
@@ -330,8 +350,7 @@ module SqliteDb =
 
 
 
-    let seqMapM (action : 'a -> SqliteDb<'b>) 
-                (source : seq<'a>) : SqliteDb<seq<'b>> = 
+    let smapM (action : 'a -> SqliteDb<'b>) (source : seq<'a>) : SqliteDb<seq<'b>> = 
         SqliteDb <| fun conn ->
             let sourceEnumerator = source.GetEnumerator()
             let rec work (fk : ErrMsg -> Result<seq<'b>, ErrMsg>) 
@@ -347,8 +366,30 @@ module SqliteDb =
                         sk (seq { yield b1; yield! sx }))
             work (fun msg -> Error msg) (fun ans -> Ok ans)
 
-            
-    let seqFoldM (action : 'state -> 'a -> SqliteDb<'state>) 
+    let sforM (sx : seq<'a>) (fn : 'a -> SqliteDb<'b>) : SqliteDb<seq<'b>> = 
+        smapM fn sx
+    
+    let smapMz (action : 'a -> SqliteDb<'b>) 
+                (source : seq<'a>) : SqliteDb<unit> = 
+        SqliteDb <| fun conn ->
+            let sourceEnumerator = source.GetEnumerator()
+            let rec work (fk : ErrMsg -> Result<unit, ErrMsg>) 
+                            (sk : unit -> Result<unit, ErrMsg>) = 
+                if not (sourceEnumerator.MoveNext()) then 
+                    sk ()
+                else
+                    let a1 = sourceEnumerator.Current
+                    match apply1 (action a1) conn with
+                    | Error msg -> fk msg
+                    | Ok _ -> 
+                        work fk sk
+            work (fun msg -> Error msg) (fun ans -> Ok ans)
+
+    
+    let sforMz (source : seq<'a>) (action : 'a -> SqliteDb<'b>) : SqliteDb<unit> = 
+        smapMz action source
+        
+    let sfoldM (action : 'state -> 'a -> SqliteDb<'state>) 
                     (state : 'state)
                     (source : seq<'a>) : SqliteDb<'state> = 
         SqliteDb <| fun conn ->
@@ -444,17 +485,21 @@ module SqliteDb =
     //        reader.Close()
     //        resultset
 
-    //// The read procedure (proc) is expected to read from a single row.
-    //let execReaderList (statement:string) (proc:SQLite.SQLiteDataReader -> 'a) : SqliteDb<'a list> =
-    //    liftConn <| fun conn -> 
-    //        let cmd : SQLiteCommand = new SQLiteCommand(statement, conn)
-    //        let reader = cmd.ExecuteReader()
-    //        let resultset = 
-    //            seq { while reader.Read() do
-    //                    let ans = proc reader
-    //                    yield ans } |> Seq.toList
-    //        reader.Close()
-    //        resultset
+    // The read procedure (proc) is expected to read from a single row.
+    let executeReaderList (statement:string) (proc:SQLite.SQLiteDataReader -> 'a) : SqliteDb<'a list> =
+        liftConn <| fun conn -> 
+            let cmd : SQLiteCommand = new SQLiteCommand(statement, conn)
+            let reader = cmd.ExecuteReader()
+            let rec work cont = 
+                match reader.Read () with
+                | false -> cont []
+                | true -> 
+                    let a1 = proc reader
+                    work (fun xs -> 
+                    cont (a1 :: xs))
+            let results = work (fun x -> x)
+            reader.Close()
+            results
 
     //// The read procedure (proc) is expected to read from a single row.
     //let execReaderArray (statement:string) (proc:SQLite.SQLiteDataReader -> 'a) : SqliteDb<'a []> =
@@ -490,6 +535,8 @@ module SqliteDb =
     //                Err <| "execReaderSingleton - no results."
     //        with
     //        | ex -> Err(ex.ToString())
+
+
 
 
     //let withTransactionList (values:'a list) (proc1:'a -> SqliteDb<'b>) : SqliteDb<'b list> = 
