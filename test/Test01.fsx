@@ -48,24 +48,36 @@ let demo01 () =
                     return ()
                 }
 
+
+// This has been causing trouble, we were trying to bind tableName
+// as a query paramter which isn't allowed by SQLite.
+// scDeleteFrom now fixed.
 let demo02 () =
     let dbPath = localFile @"output\authors.sqlite"
     let connParams = sqliteConnParamsVersion3 dbPath
     runSqliteDb connParams (scDeleteFrom "authors")
 
+
+/// TODO - use a param query ...
+/// I'm not sure the Prepare() in System.Data.SQLite is valuable for SQLite and this needs examining...
 let demo03 () =
     let dbPath = localFile @"output\authors.sqlite"
     let connParams = sqliteConnParamsVersion3 dbPath
         
-    let sqlInsert = 
-        new SQLiteCommand  "INSERT INTO authors (name, country) \
-         VALUES \
-         ('Enrique Vila-Matas', 'Spain'),\
-         ('Bae Suah', 'South Korea');"
+    let authors = 
+        [ ("Enrique Vila-Matas", "Spain")
+        ; ("Bae Suah", "South Korea") 
+        ]
+    let dbInsert (name : string, country) : SqliteDb<int> = 
+        let cmd = new SQLiteCommand  "INSERT INTO authors (name, country) VALUES (:name, :country)"
+        cmd.Parameters.AddWithValue(parameterName = "name", value = box name) |> ignore
+        cmd.Parameters.AddWithValue(parameterName = "country", value = box country) |> ignore
+        executeNonQuery cmd
+
     runSqliteDb connParams 
         <| sqliteDb { 
-                let! _ = executeNonQuery sqlInsert
-                return ()
+                let! xs = mapM dbInsert authors
+                return xs
             }
 
 let demo04 () = 
@@ -82,7 +94,7 @@ let demo04 () =
                 return! executeReader query1 (readerReadAll readRow1)
             }
     
-let demo02a () = 
+let demo03a () = 
     let dbPath = localFile @"output\authors.sqlite"
     let connParams = sqliteConnParamsVersion3 dbPath
     let conn = new SQLiteConnection(connParams.ConnectionString)

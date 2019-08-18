@@ -30,6 +30,12 @@ module Utils =
     let escapeQuotes (source: string) : string = 
         source.Replace("'", "''")
  
+    let stringValue (source : string) : string = 
+        match source with
+        | null -> ""
+        | _ -> escapeQuotes source
+
+
     // Note - there is plenty of scope for a secondary interface
     // automating the command line: e.g.
     // > sqlite3 change_request.db ".output cr_schema.sql" ".schema" ".exit"

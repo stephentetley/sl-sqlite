@@ -2,6 +2,13 @@
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <PackageLicenseFile>LICENSE</PackageLicenseFile>
+    <Authors>Stephen Tetley</Authors>
+    <Copyright>Stephen Tetley</Copyright>
+    <PackageProjectUrl>https://github.com/stephentetley/sl-sqlite</PackageProjectUrl>
+    <Description>A small library providing a monadic interface to SQLite.</Description>
+    <Version>1.0.0-alpha-20190818</Version>
   </PropertyGroup>
 
   <ItemGroup>
@@ -12,6 +19,13 @@
   <ItemGroup>
     <PackageReference Include="System.Data.SQLite" Version="1.0.111" />
     <PackageReference Include="System.Data.SQLite.Core" Version="1.0.111" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\LICENSE">
+      <Pack>True</Pack>
+      <PackagePath></PackagePath>
+    </None>
   </ItemGroup>
 
 </Project>

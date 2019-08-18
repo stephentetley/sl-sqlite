@@ -564,17 +564,15 @@ module SqliteDb =
         with
         | ex -> Error ex
 
-    // Run a ``DELETE FROM`` query
+    /// Run a ``DELETE FROM`` query
+    /// To do this should check that tableName is a simple identity, isn't a system table etc.
     let scDeleteFrom (tableName:string) : SqliteDb<int> = 
-        let command = new SQLiteCommand(commandText = @"DELETE FROM @name")
-        command.Parameters.AddWithValue("@name", box tableName) |> ignore
+        let sql = sprintf "DELETE FROM %s" tableName
+        let command = new SQLiteCommand(commandText = sql)
         executeNonQuery command
 
 
     
+    
 
-
-    let stringValue (source : string) : string = 
-        match source with
-        | null -> ""
-        | _ -> escapeQuotes source
+    
