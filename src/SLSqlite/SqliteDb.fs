@@ -25,7 +25,8 @@ module SqliteDb =
         { PathToDB : string 
           SQLiteVersion : string 
         }
-
+        member x.ConnectionString : string = 
+            sprintf "Data Source=%s;Version=%s;" x.PathToDB x.SQLiteVersion
 
     let makeConnectionString (config : SqliteConnParams) : string = 
         sprintf "Data Source=%s;Version=%s;" config.PathToDB config.SQLiteVersion
@@ -129,15 +130,15 @@ module SqliteDb =
             with
             | err -> Error err.Message
 
-    let executeNonQuery (sqlStatement : string) : SqliteDb<int> = 
+    let executeNonQuery (cmd : SQLiteCommand) : SqliteDb<int> = 
         liftConn <| fun conn -> 
-            let cmd : SQLiteCommand = new SQLiteCommand(sqlStatement, conn)
+            cmd.Connection <- conn
             cmd.ExecuteNonQuery ()
 
-    let executeReader (sqlStatement : string) 
-                      (proc : SQLite.SQLiteDataReader -> 'a) : SqliteDb<'a> =
-        liftConn <| fun conn -> 
-            let cmd : SQLiteCommand = new SQLiteCommand(sqlStatement, conn)
+    let executeReader (cmd : SQLiteCommand) 
+                      (proc : SQLite.SQLiteDataReader -> Result<'a, ErrMsg>) : SqliteDb<'a> =
+        SqliteDb <| fun conn -> 
+            cmd.Connection <- conn
             let reader : SQLiteDataReader = cmd.ExecuteReader()
             let ans = proc reader
             reader.Close()
@@ -485,11 +486,10 @@ module SqliteDb =
     //        reader.Close()
     //        resultset
 
-    // The read procedure (proc) is expected to read from a single row.
-    let executeReaderList (statement:string) (proc:RowReader -> 'a) : SqliteDb<'a list> =
-        SqliteDb <| fun conn -> 
-            let cmd : SQLiteCommand = new SQLiteCommand(statement, conn)
-            let reader = cmd.ExecuteReader()
+    
+
+    let readerReadAll (proc : RowReader -> 'a) : SQLite.SQLiteDataReader -> Result<'a list, ErrMsg> = 
+        fun reader -> 
             let rec work fk sk = 
                 match reader.Read () with
                 | false -> sk []
@@ -498,9 +498,9 @@ module SqliteDb =
                     | Error msg -> fk msg
                     | Ok a1 -> 
                         work fk (fun xs -> sk (a1 :: xs))
-            let results = work (fun x -> Error x) (fun x -> Ok x)
-            reader.Close()
-            results
+            work (fun x -> Error x) (fun x -> Ok x)
+
+            
 
     //// The read procedure (proc) is expected to read from a single row.
     //let execReaderArray (statement:string) (proc:SQLite.SQLiteDataReader -> 'a) : SqliteDb<'a []> =
@@ -566,8 +566,9 @@ module SqliteDb =
 
     // Run a ``DELETE FROM`` query
     let scDeleteFrom (tableName:string) : SqliteDb<int> = 
-        let query = sprintf "DELETE FROM %s;" tableName
-        executeNonQuery query
+        let command = new SQLiteCommand(commandText = @"DELETE FROM @name")
+        command.Parameters.AddWithValue("@name", box tableName) |> ignore
+        executeNonQuery command
 
 
     

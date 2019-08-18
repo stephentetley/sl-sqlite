@@ -36,39 +36,64 @@ let demo01 () =
     let dbPath = localFile @"output\authors.sqlite"
     let connParams = sqliteConnParamsVersion3 dbPath
     let sqlCreateTable = 
-        "CREATE TABLE authors (\
+        new SQLiteCommand "CREATE TABLE authors (\
          name TEXT UNIQUE PRIMARY KEY NOT NULL,\
          country TEXT);"
-
-    let sqlInsert = 
-        "INSERT INTO authors (name, country) \
-         VALUES \
-         ('Enrique Vila-Matas', 'Spain'),\
-         ('Bae Suah', 'South Korea');"
-
     match createDatabase dbPath with
     | Error ex -> Error ex.Message
     | Ok _ -> 
         runSqliteDb connParams 
             <| sqliteDb { 
                     let! _ = executeNonQuery sqlCreateTable
-                    let! _ = executeNonQuery sqlInsert
                     return ()
                 }
 
-let demo02 () = 
+let demo02 () =
     let dbPath = localFile @"output\authors.sqlite"
     let connParams = sqliteConnParamsVersion3 dbPath
-    let query1 = "SELECT * FROM authors;"    
-    let reader1 (reader : RowReader) : string * string = 
+    runSqliteDb connParams (scDeleteFrom "authors")
+
+let demo03 () =
+    let dbPath = localFile @"output\authors.sqlite"
+    let connParams = sqliteConnParamsVersion3 dbPath
+        
+    let sqlInsert = 
+        new SQLiteCommand  "INSERT INTO authors (name, country) \
+         VALUES \
+         ('Enrique Vila-Matas', 'Spain'),\
+         ('Bae Suah', 'South Korea');"
+    runSqliteDb connParams 
+        <| sqliteDb { 
+                let! _ = executeNonQuery sqlInsert
+                return ()
+            }
+
+let demo04 () = 
+    let dbPath = localFile @"output\authors.sqlite"
+    let connParams = sqliteConnParamsVersion3 dbPath
+    let query1 = new SQLiteCommand "SELECT * FROM authors;"    
+    let readRow1 (reader : RowReader) : string * string = 
         let name = reader.GetString(0)
         let country = reader.GetString(1) 
         (name, country)
 
     runSqliteDb connParams 
         <| sqliteDb { 
-                return! executeReaderList query1 reader1 
+                return! executeReader query1 (readerReadAll readRow1)
             }
     
-     
+let demo02a () = 
+    let dbPath = localFile @"output\authors.sqlite"
+    let connParams = sqliteConnParamsVersion3 dbPath
+    let conn = new SQLiteConnection(connParams.ConnectionString)
+    conn.Open()
+    let sql = @"INSERT INTO authors(name, country) VALUES (:name, :country)"
+    let command = new SQLiteCommand(commandText = sql, connection = conn)
+    command.Parameters.AddWithValue(parameterName = "name", value = box "Jean Echenoz") |> printfn "Param: %O"
+    command.Parameters.AddWithValue(parameterName = "country", value = box "France") |> printfn "Param: %O"
+    let ans = command.ExecuteNonQuery ()
+    conn.Close () 
+    ans
+
+    
      
