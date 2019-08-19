@@ -71,8 +71,8 @@ let demo03 () =
     let dbInsert (name : string, country) : SqliteDb<int> = 
         let cmd = 
             new KeyedCommand  "INSERT INTO authors (name, country) VALUES (:name, :country)"
-                |> addNamedParam "name" (box name) 
-                |> addNamedParam "country" (box country)
+                |> addNamedParam "name" (stringParam name) 
+                |> addNamedParam "country" (stringParam country)
         executeNonQueryKeyed cmd
 
     runSqliteDb connParams 
@@ -86,14 +86,15 @@ let demo04 () =
     let connParams = sqliteConnParamsVersion3 dbPath
         
     let authors = 
-        [ ("Catherine Leroux", "Canada")
-        ; ("Quim Monzo", "Spain") 
+        [ ("Catherine Leroux", Some "Canada")
+        ; ("Quim Monzo", Some "Spain") 
+        ; ("Bad Row", None)
         ]
-    let dbInsert (name : string, country : string) : SqliteDb<int> = 
+    let dbInsert (name : string, country : string option) : SqliteDb<int> = 
         let cmd = 
             new IndexedCommand  "INSERT INTO authors (name, country) VALUES (?,?)"
                 |> addParam (stringParam name) 
-                |> addParam (stringParam country)
+                |> addParam (optionNull stringParam country)
         executeNonQueryIndexed cmd
 
     runSqliteDb connParams 
@@ -106,9 +107,9 @@ let demo05 () =
     let dbPath = localFile @"output\authors.sqlite"
     let connParams = sqliteConnParamsVersion3 dbPath
     let query1 = new SQLiteCommand "SELECT * FROM authors;"    
-    let readRow1 (reader : RowReader) : string * string = 
+    let readRow1 (reader : RowReader) : string * string option = 
         let name = reader.GetString(0)
-        let country = reader.GetString(1) 
+        let country = reader.TryGetString(1) 
         (name, country)
 
     runSqliteDb connParams 

@@ -8,7 +8,7 @@
     <Copyright>Stephen Tetley</Copyright>
     <PackageProjectUrl>https://github.com/stephentetley/sl-sqlite</PackageProjectUrl>
     <Description>A small library providing a monadic interface to SQLite.</Description>
-    <Version>1.0.0-alpha-20190818</Version>
+    <Version>1.0.0-alpha-20190819</Version>
   </PropertyGroup>
 
   <ItemGroup>

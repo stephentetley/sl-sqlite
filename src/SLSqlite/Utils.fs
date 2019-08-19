@@ -53,14 +53,17 @@ module Utils =
         | RowReader of SQLiteDataReader
 
 
-        member x.GetDataTypeName(i :int) : string = 
+        member x.GetDataTypeName(i : int) : string = 
             let (RowReader reader) = x in reader.GetDataTypeName(i)
         
-        member x.GetName(i :int) : string = 
+        member x.GetName(i : int) : string = 
             let (RowReader reader) = x in reader.GetName(i)
 
-        member x.GetOrdinal(name :string) : int = 
+        member x.GetOrdinal(name : string) : int = 
             let (RowReader reader) = x in reader.GetOrdinal(name)
+
+        member x.IsDBNull(i : int) : bool = 
+            let (RowReader reader) = x in reader.IsDBNull(i)
 
 
         member x.GetBlob(i : int, readOnly : bool) : SQLiteBlob = 
@@ -96,6 +99,15 @@ module Utils =
         member x.GetString(i : int) : string = 
             let (RowReader reader) = x in reader.GetString(i)
 
+        /// TODO - this is useful (keep for now) but do we want to double 
+        /// the size of the Get_ API?
+        member x.TryGetString(i : int) : string option = 
+            let (RowReader reader) = x in 
+                if reader.IsDBNull(i) then
+                    None 
+                else 
+                    reader.GetString(i) |> Some
+
         member x.GetValue(i : int) : obj = 
             let (RowReader reader) = x in reader.GetValue(i)
         
@@ -110,9 +122,9 @@ module Utils =
     /// Question marks are not recognized - use IndexedCommand instead.
     type KeyedCommand = 
         val private CmdObj : SQLiteCommand
-        val private Params : (string * obj) list
+        val private Params : (string * SQLiteParameter) list
         
-        private new (cmd : SQLiteCommand, ps : (string * obj) list) = 
+        private new (cmd : SQLiteCommand, ps : (string * SQLiteParameter) list) = 
             { CmdObj = cmd; Params = ps }
 
         new (commandText : String) = 
@@ -120,16 +132,17 @@ module Utils =
 
         member x.GetSQLiteCommand(connection : SQLiteConnection ) : SQLiteCommand = 
             let command = x.CmdObj
-            List.iter (fun (key, boxedValue) -> 
-                        command.Parameters.AddWithValue(parameterName = key, value = boxedValue) |> ignore
-                        ) x.Params
+            let addParam (key : string) (param1 : SQLiteParameter) : unit =
+                param1.ParameterName <- key
+                command.Parameters.Add(param1) |> ignore
+            List.iter (fun (key, boxedValue) -> addParam key boxedValue) x.Params
             command.Connection <- connection
             command
 
-        member x.AddWithValue(paramName : string, value : obj) : KeyedCommand = 
+        member x.AddWithValue(paramName : string, value : SQLiteParameter) : KeyedCommand = 
             new KeyedCommand (cmd = x.CmdObj, ps = (paramName, value) :: x.Params )
             
-    let addNamedParam (paramName : string) (value : obj) (command : KeyedCommand) : KeyedCommand = 
+    let addNamedParam (paramName : string) (value : SQLiteParameter) (command : KeyedCommand) : KeyedCommand = 
         command.AddWithValue(paramName, value)
 
     
@@ -161,14 +174,100 @@ module Utils =
         command.AddParam(param1)
 
 
-    /// F# String mapped to DbType.String
-    let stringParam (str : string) : SQLiteParameter = 
-        let param1 = new SQLiteParameter(dbType = DbType.String)
-        param1.Value <- str
-        param1
 
     /// F# bool mapped to DbType.Boolean
     let boolParam (value : bool) : SQLiteParameter = 
         let param1 = new SQLiteParameter(dbType = DbType.Boolean)
         param1.Value <- value
         param1
+
+    /// F# byte mapped to DbType.Byte
+    let byteParam (value : byte) : SQLiteParameter = 
+        let param1 = new SQLiteParameter(dbType = DbType.Byte)
+        param1.Value <- value
+        param1
+
+
+    /// F# DateTime mapped to DbType.DateTime
+    let dateTimeParam (value : DateTime) : SQLiteParameter = 
+        let param1 = new SQLiteParameter(dbType = DbType.DateTime)
+        param1.Value <- value
+        param1
+
+    /// F# decimal mapped to DbType.Decimal
+    let decimalParam (value : decimal) : SQLiteParameter = 
+        let param1 = new SQLiteParameter(dbType = DbType.Decimal)
+        param1.Value <- value
+        param1
+
+    /// F# double mapped to DbType.Double
+    let doubleParam (value : double) : SQLiteParameter = 
+        let param1 = new SQLiteParameter(dbType = DbType.Double)
+        param1.Value <- value
+        param1
+
+    /// F# Guid mapped to DbType.Guid
+    let guidParam (value : Guid) : SQLiteParameter = 
+        let param1 = new SQLiteParameter(dbType = DbType.Guid)
+        param1.Value <- value
+        param1
+
+    /// F# int16 mapped to DbType.Int16
+    let int16Param (value : int16) : SQLiteParameter = 
+        let param1 = new SQLiteParameter(dbType = DbType.Int16)
+        param1.Value <- value
+        param1
+
+    /// F# int32 mapped to DbType.Int32
+    let int32Param (value : int32) : SQLiteParameter = 
+        let param1 = new SQLiteParameter(dbType = DbType.Int32)
+        param1.Value <- value
+        param1
+
+    /// F# int64 mapped to DbType.Int64
+    let int64Param (value : int64) : SQLiteParameter = 
+        let param1 = new SQLiteParameter(dbType = DbType.Int64)
+        param1.Value <- value
+        param1
+
+    /// F# single mapped to DbType.Single
+    let singleParam (value : single) : SQLiteParameter = 
+        let param1 = new SQLiteParameter(dbType = DbType.Single)
+        param1.Value <- value
+        param1
+
+    /// F# string mapped to DbType.String
+    let stringParam (value : string) : SQLiteParameter = 
+        let param1 = new SQLiteParameter(dbType = DbType.String)
+        param1.Value <- value
+        param1
+
+    /// F# uint16 mapped to DbType.UInt16
+    let uint16Param (value : uint16) : SQLiteParameter = 
+        let param1 = new SQLiteParameter(dbType = DbType.UInt16)
+        param1.Value <- value
+        param1
+
+    /// F# uint32 mapped to DbType.UInt32
+    let uint32Param (value : uint32) : SQLiteParameter = 
+        let param1 = new SQLiteParameter(dbType = DbType.UInt32)
+        param1.Value <- value
+        param1
+
+    /// F# uint64 mapped to DbType.UInt64
+    let uint64Param (value : uint64) : SQLiteParameter = 
+        let param1 = new SQLiteParameter(dbType = DbType.UInt64)
+        param1.Value <- value
+        param1
+
+    /// 
+    let optionNull (mapper : 'a -> SQLiteParameter) (value : Option<'a>) : SQLiteParameter = 
+        match value with
+        | Some v1 -> mapper v1
+        | None -> 
+            let param1 = new SQLiteParameter()
+            param1.IsNullable <- true
+            param1.Value <- null
+            param1
+
+
