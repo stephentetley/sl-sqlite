@@ -13,6 +13,7 @@
 
   <ItemGroup>
     <Compile Include="SLSqlite\Utils.fs" />
+    <Compile Include="SLSqlite\Wrappers.fs" />
     <Compile Include="SLSqlite\SqliteDb.fs" />
   </ItemGroup>
 

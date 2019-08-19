@@ -24,9 +24,10 @@ Environment.SetEnvironmentVariable("PATH",
 // Open FSharp.Core
 open FSharp.Core
 
-#load "..\src\SLSqlite\Utils.fs"
+
+#load "..\src\SLSqlite\Wrappers.fs"
 #load "..\src\SLSqlite\SqliteDb.fs"
-open SLSqlite.Utils
+open SLSqlite.Wrappers
 open SLSqlite.SqliteDb
 
 let localFile (relpath : string) = 
@@ -136,6 +137,3 @@ let demo04a () =
     let ans = command.ExecuteNonQuery ()
     conn.Close () 
     ans
-
-    
-     

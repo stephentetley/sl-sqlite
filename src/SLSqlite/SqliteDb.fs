@@ -17,7 +17,7 @@ module SqliteDb =
     open System.Data.SQLite
 
 
-    open SLSqlite.Utils
+    open SLSqlite.Wrappers
     
     type ErrMsg = string
 
