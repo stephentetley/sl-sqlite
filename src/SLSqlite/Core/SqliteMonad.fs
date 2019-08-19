@@ -1,12 +1,13 @@
 ﻿// Copyright (c) Stephen Tetley 2019
 // License: BSD 3 Clause
 
-namespace SLSqlite
+namespace SLSqlite.Core
 
 // Note - we favour the casing "Sqlite" rather than "SQLite" then 
 // we are in a less populated namespace
 
-module SqliteDb = 
+[<AutoOpen>]
+module SqliteMonad = 
 
     open System.Collections.Generic
     open System.Data
@@ -17,7 +18,7 @@ module SqliteDb =
     open System.Data.SQLite
 
 
-    open SLSqlite.Wrappers
+    open SLSqlite.Core
     
     type ErrMsg = string
 

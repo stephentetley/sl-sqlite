@@ -12,9 +12,9 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="SLSqlite\Core\Wrappers.fs" />
+    <Compile Include="SLSqlite\Core\SqliteMonad.fs" />
     <Compile Include="SLSqlite\Utils.fs" />
-    <Compile Include="SLSqlite\Wrappers.fs" />
-    <Compile Include="SLSqlite\SqliteDb.fs" />
   </ItemGroup>
 
   <ItemGroup>

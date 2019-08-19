@@ -1,12 +1,13 @@
 ﻿// Copyright (c) Stephen Tetley 2019
 // License: BSD 3 Clause
 
-namespace SLSqlite
+namespace SLSqlite.Core
 
 
 // Ideally this would be in the same namespace as the monad.
 // Should we push the names down another level?
 
+[<AutoOpen>]
 module Wrappers =
     
     open System
