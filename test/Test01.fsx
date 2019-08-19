@@ -138,3 +138,23 @@ let demo04a () =
     let ans = command.ExecuteNonQuery ()
     conn.Close () 
     ans
+
+// run after demo01 ; demo03
+let demo06 () = 
+    let dbPath = localFile @"output\authors.sqlite"
+    let connParams = sqliteConnParamsVersion3 dbPath
+        
+
+    let dbInsert (name : string, country) : SqliteDb<int> = 
+        let cmd = 
+            new KeyedCommand  "INSERT INTO authors (name, country) VALUES (:name, :country)"
+                |> addNamedParam "name" (stringParam name) 
+                |> addNamedParam "country" (stringParam country)
+        executeNonQueryKeyed cmd
+
+    runSqliteDb connParams 
+        <| sqliteDb { 
+                let! a = attempt (dbInsert ("Enrique Vila-Matas", "Spain")) 
+                                 (fun _msg -> throwError "Failed on Enrique Vila-Matas")
+                return a
+            }

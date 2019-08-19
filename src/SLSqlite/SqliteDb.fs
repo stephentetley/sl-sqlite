@@ -295,6 +295,14 @@ module SqliteDb =
             | Ok a -> Ok a
             | Error msg -> Error (update msg)
 
+    /// Try to run a computation.
+    /// On failure, recover or throw again with the handler.
+    let attempt (ma:SqliteDb<'a>) (handler : ErrMsg -> SqliteDb<'a>) : SqliteDb<'a> = 
+        SqliteDb <| fun conn ->
+            match apply1 ma conn with
+            | Ok a -> Ok a
+            | Error msg -> apply1 (handler msg) conn
+
 
 
 
