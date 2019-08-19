@@ -135,6 +135,16 @@ module SqliteDb =
             cmd.Connection <- conn
             cmd.ExecuteNonQuery ()
 
+    let executeNonQueryKeyed (cmd : KeyedCommand) : SqliteDb<int> = 
+        liftConn <| fun conn -> 
+            let command = cmd.GetSQLiteCommand(conn)
+            command.ExecuteNonQuery ()
+
+    let executeNonQueryIndexed (cmd : IndexedCommand) : SqliteDb<int> = 
+        liftConn <| fun conn -> 
+            let command = cmd.GetSQLiteCommand(conn)
+            command.ExecuteNonQuery ()
+
     let executeReader (cmd : SQLiteCommand) 
                       (proc : SQLite.SQLiteDataReader -> Result<'a, ErrMsg>) : SqliteDb<'a> =
         SqliteDb <| fun conn -> 

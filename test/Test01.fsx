@@ -69,10 +69,11 @@ let demo03 () =
         ; ("Bae Suah", "South Korea") 
         ]
     let dbInsert (name : string, country) : SqliteDb<int> = 
-        let cmd = new SQLiteCommand  "INSERT INTO authors (name, country) VALUES (:name, :country)"
-        cmd.Parameters.AddWithValue(parameterName = "name", value = box name) |> ignore
-        cmd.Parameters.AddWithValue(parameterName = "country", value = box country) |> ignore
-        executeNonQuery cmd
+        let cmd = 
+            new KeyedCommand  "INSERT INTO authors (name, country) VALUES (:name, :country)"
+                |> addNamedParam "name" (box name) 
+                |> addNamedParam "country" (box country)
+        executeNonQueryKeyed cmd
 
     runSqliteDb connParams 
         <| sqliteDb { 
@@ -80,7 +81,28 @@ let demo03 () =
                 return xs
             }
 
-let demo04 () = 
+let demo04 () =
+    let dbPath = localFile @"output\authors.sqlite"
+    let connParams = sqliteConnParamsVersion3 dbPath
+        
+    let authors = 
+        [ ("Catherine Leroux", "Canada")
+        ; ("Quim Monzo", "Spain") 
+        ]
+    let dbInsert (name : string, country : string) : SqliteDb<int> = 
+        let cmd = 
+            new IndexedCommand  "INSERT INTO authors (name, country) VALUES (?,?)"
+                |> addParam (stringParam name) 
+                |> addParam (stringParam country)
+        executeNonQueryIndexed cmd
+
+    runSqliteDb connParams 
+        <| sqliteDb { 
+                let! xs = mapM dbInsert authors
+                return xs
+            }
+
+let demo05 () = 
     let dbPath = localFile @"output\authors.sqlite"
     let connParams = sqliteConnParamsVersion3 dbPath
     let query1 = new SQLiteCommand "SELECT * FROM authors;"    
@@ -94,15 +116,22 @@ let demo04 () =
                 return! executeReader query1 (readerReadAll readRow1)
             }
     
-let demo03a () = 
+let demo04a () = 
     let dbPath = localFile @"output\authors.sqlite"
     let connParams = sqliteConnParamsVersion3 dbPath
     let conn = new SQLiteConnection(connParams.ConnectionString)
     conn.Open()
-    let sql = @"INSERT INTO authors(name, country) VALUES (:name, :country)"
-    let command = new SQLiteCommand(commandText = sql, connection = conn)
-    command.Parameters.AddWithValue(parameterName = "name", value = box "Jean Echenoz") |> printfn "Param: %O"
-    command.Parameters.AddWithValue(parameterName = "country", value = box "France") |> printfn "Param: %O"
+    let sql = @"INSERT INTO authors(name, country) VALUES (?,?)"
+    let command = 
+        new SQLiteCommand(commandText = sql, connection = conn)
+    
+    let p1 = new SQLiteParameter(dbType = DbType.String)
+    p1.Value <- "Jean Echenoz"
+    command.Parameters.Add (parameter = p1)  |> printfn "%O"
+
+    let p2 = new SQLiteParameter(dbType = DbType.String)
+    p2.Value <- "France"
+    command.Parameters.Add (parameter = p2) |> printfn "%O"
     let ans = command.ExecuteNonQuery ()
     conn.Close () 
     ans

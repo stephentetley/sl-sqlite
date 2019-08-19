@@ -7,6 +7,7 @@ namespace SLSqlite
 module Utils =
     
     open System
+    open System.Data
 
     open System.Data.SQLite
 
@@ -105,3 +106,69 @@ module Utils =
         with
         | expn -> Error expn.Message
 
+    /// Note the query must use named holes (:name).
+    /// Question marks are not recognized - use IndexedCommand instead.
+    type KeyedCommand = 
+        val private CmdObj : SQLiteCommand
+        val private Params : (string * obj) list
+        
+        private new (cmd : SQLiteCommand, ps : (string * obj) list) = 
+            { CmdObj = cmd; Params = ps }
+
+        new (commandText : String) = 
+            { CmdObj = new SQLiteCommand(commandText = commandText); Params = [] }
+
+        member x.GetSQLiteCommand(connection : SQLiteConnection ) : SQLiteCommand = 
+            let command = x.CmdObj
+            List.iter (fun (key, boxedValue) -> 
+                        command.Parameters.AddWithValue(parameterName = key, value = boxedValue) |> ignore
+                        ) x.Params
+            command.Connection <- connection
+            command
+
+        member x.AddWithValue(paramName : string, value : obj) : KeyedCommand = 
+            new KeyedCommand (cmd = x.CmdObj, ps = (paramName, value) :: x.Params )
+            
+    let addNamedParam (paramName : string) (value : obj) (command : KeyedCommand) : KeyedCommand = 
+        command.AddWithValue(paramName, value)
+
+    
+    type IndexedCommand = 
+        val private CmdObj : SQLiteCommand
+        val private RevParams : SQLiteParameter list
+        
+        private new (cmd : SQLiteCommand, ps : SQLiteParameter list) = 
+            { CmdObj = cmd; RevParams = ps }
+
+        new (commandText : String) = 
+            { CmdObj = new SQLiteCommand(commandText = commandText); RevParams = [] }
+
+        member x.GetSQLiteCommand(connection : SQLiteConnection ) : SQLiteCommand = 
+            let command = x.CmdObj
+            let addParam (param1 : SQLiteParameter) : unit =
+                command.Parameters.Add(parameter = param1) |> ignore
+
+            List.foldBack (fun x acc -> addParam x; acc) 
+                            x.RevParams ()
+            command.Connection <- connection
+            command
+        
+        member x.AddParam(param1 : SQLiteParameter) : IndexedCommand = 
+            new IndexedCommand (cmd = x.CmdObj, ps = param1 :: x.RevParams )
+
+
+    let addParam (param1 : SQLiteParameter) (command : IndexedCommand) : IndexedCommand = 
+        command.AddParam(param1)
+
+
+    /// F# String mapped to DbType.String
+    let stringParam (str : string) : SQLiteParameter = 
+        let param1 = new SQLiteParameter(dbType = DbType.String)
+        param1.Value <- str
+        param1
+
+    /// F# bool mapped to DbType.Boolean
+    let boolParam (value : bool) : SQLiteParameter = 
+        let param1 = new SQLiteParameter(dbType = DbType.Boolean)
+        param1.Value <- value
+        param1
