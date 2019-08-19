@@ -418,86 +418,53 @@ module SqliteDb =
                         work st1 fk sk
             work state (fun msg -> Error msg) (fun ans -> Ok ans)
 
-    //let mapiM (fn:int -> 'a -> SqliteDb<'b>) (xs:'a list) : SqliteDb<'b list> = 
-    //    SqliteDb <| fun conn ->
-    //        AnswerMonad.mapiM (fun ix a -> apply1 (fn ix a) conn) xs
 
-    //let mapiMz (fn:int -> 'a -> SqliteDb<'b>) (xs:'a list) : SqliteDb<unit> = 
-    //    SqliteDb <| fun conn ->
-    //        AnswerMonad.mapiMz (fun ix a -> apply1 (fn ix a) conn) xs
-
-    //let foriM (xs:'a list) (fn:int -> 'a -> SqliteDb<'b>) : SqliteDb<'b list> = 
-    //    mapiM fn xs
-
-    //let foriMz (xs:'a list) (fn:int -> 'a -> SqliteDb<'b>) : SqliteDb<unit> = 
-    //    mapiMz fn xs
-
-
-    //// Note - goes through intermediate list, see AnswerMonad.traverseM
-    //let traverseM (fn: 'a -> SqliteDb<'b>) (source:seq<'a>) : SqliteDb<seq<'b>> = 
-    //    SqliteDb <| fun conn ->
-    //        AnswerMonad.traverseM (fun x -> let mf = fn x in apply1 mf conn) source
-
-    //let traverseMz (fn: 'a -> SqliteDb<'b>) (source:seq<'a>) : SqliteDb<unit> = 
-    //    SqliteDb <| fun conn ->
-    //        AnswerMonad.traverseMz (fun x -> let mf = fn x in apply1 mf conn) source
-
-    //let traverseiM (fn:int -> 'a -> SqliteDb<'b>) (source:seq<'a>) : SqliteDb<seq<'b>> = 
-    //    SqliteDb <| fun conn ->
-    //        AnswerMonad.traverseiM (fun ix x -> let mf = fn ix x in apply1 mf conn) source
-
-    //let traverseiMz (fn:int -> 'a -> SqliteDb<'b>) (source:seq<'a>) : SqliteDb<unit> = 
-    //    SqliteDb <| fun conn ->
-    //        AnswerMonad.traverseiMz (fun ix x -> let mf = fn ix x in apply1 mf conn) source
-
-    //let sequenceM (source:SqliteDb<'a> list) : SqliteDb<'a list> = 
-    //    SqliteDb <| fun conn ->
-    //        AnswerMonad.sequenceM <| List.map (fun ma -> apply1 ma conn) source
-
-    //let sequenceMz (source:SqliteDb<'a> list) : SqliteDb<unit> = 
-    //    SqliteDb <| fun conn ->
-    //        AnswerMonad.sequenceMz <| List.map (fun ma -> apply1 ma conn) source
-
-    //// Summing variants
-
-    //let sumMapM (fn:'a -> SqliteDb<int>) (xs:'a list) : SqliteDb<int> = 
-    //    fmapM List.sum <| mapM fn xs
-
-    //let sumMapiM (fn:int -> 'a -> SqliteDb<int>) (xs:'a list) : SqliteDb<int> = 
-    //    fmapM List.sum <| mapiM fn xs
-
-    //let sumForM (xs:'a list) (fn:'a -> SqliteDb<int>) : SqliteDb<int> = 
-    //    fmapM List.sum <| forM xs fn
-
-    //let sumForiM (xs:'a list) (fn:int -> 'a -> SqliteDb<int>) : SqliteDb<int> = 
-    //    fmapM List.sum <| foriM xs fn
-
-    //let sumTraverseM (fn: 'a -> SqliteDb<int>) (source:seq<'a>) : SqliteDb<int> =
-    //    fmapM Seq.sum <| traverseM fn source
-
-    //let sumTraverseiM (fn:int -> 'a -> SqliteDb<int>) (source:seq<'a>) : SqliteDb<int> =
-    //    fmapM Seq.sum <| traverseiM fn source
-
-    //let sumSequenceM (source:SqliteDb<int> list) : SqliteDb<int> = 
-    //    fmapM List.sum <| sequenceM source
+    /// Implemented in CPS 
+    let mapiM (mf : int -> 'a -> SqliteDb<'b>) 
+                (source : 'a list) : SqliteDb<'b list> = 
+        SqliteDb <| fun conn -> 
+            let rec work (xs : 'a list)
+                         (count : int)
+                         (fk : ErrMsg -> Result<'b list, ErrMsg>) 
+                         (sk : 'b list -> Result<'b list, ErrMsg>) = 
+                match xs with
+                | [] -> sk []
+                | y :: ys -> 
+                    match apply1 (mf count y) conn with
+                    | Error msg -> fk msg
+                    | Ok a1 -> 
+                        work ys (count+1) fk (fun acc ->
+                        sk (a1::acc))
+            work source 0 (fun msg -> Error msg) (fun ans -> Ok ans)
 
 
-    ///// The read procedure (proc) is expected to read from a single row.
-    ///// WARNING - the equivalent function on PGSQLConn does not work.
-    ///// Both need to be investigated.
-    //let execReaderSeq (statement:string) (proc:SQLite.SQLiteDataReader -> 'a) : SqliteDb<seq<'a>> =
-    //    liftConn <| fun conn -> 
-    //        let cmd : SQLiteCommand = new SQLiteCommand(statement, conn)
-    //        let reader = cmd.ExecuteReader()
-    //        let resultset = 
-    //            seq { while reader.Read() do
-    //                    let ans = proc reader
-    //                    yield ans }
-    //        reader.Close()
-    //        resultset
+    /// Implemented in CPS 
+    let mapiMz (mf : int -> 'a -> SqliteDb<'b>) 
+              (source : 'a list) : SqliteDb<unit> = 
+        SqliteDb <| fun conn -> 
+            let rec work (xs : 'a list) 
+                         (count : int)
+                         (fk : ErrMsg -> Result<unit, ErrMsg>) 
+                         (sk : unit -> Result<unit, ErrMsg>) = 
+                match xs with
+                | [] -> sk ()
+                | y :: ys -> 
+                    match apply1 (mf count y) conn with
+                    | Error msg -> fk msg
+                    | Ok _ -> 
+                        work ys (count+1) fk sk
+            work source 0 (fun msg -> Error msg) (fun ans -> Ok ans)
 
     
 
+    let foriM (xs : 'a list) (fn : int -> 'a -> SqliteDb<'b>) : SqliteDb<'b list> = 
+        mapiM fn xs
+
+    let foriMz (xs : 'a list) (fn : int -> 'a -> SqliteDb<'b>) : SqliteDb<unit> = 
+        mapiMz fn xs
+
+
+   
     let readerReadAll (proc : RowReader -> 'a) : SQLite.SQLiteDataReader -> Result<'a list, ErrMsg> = 
         fun reader -> 
             let rec work fk sk = 
@@ -512,70 +479,18 @@ module SqliteDb =
 
             
 
-    //// The read procedure (proc) is expected to read from a single row.
-    //let execReaderArray (statement:string) (proc:SQLite.SQLiteDataReader -> 'a) : SqliteDb<'a []> =
-    //    liftConn <| fun conn -> 
-    //        let cmd : SQLiteCommand = new SQLiteCommand(statement, conn)
-    //        let reader = cmd.ExecuteReader()
-    //        let resultset = 
-    //            seq { while reader.Read() do
-    //                    let ans = proc reader
-    //                    yield ans } |> Seq.toArray
-    //        reader.Close()
-    //        resultset
+  
 
-
-
-    //// The read procedure (proc) is expected to read from a single row.
-    //// The query should return exactly one row.
-    //let execReaderSingleton (statement:string) (proc:SQLite.SQLiteDataReader -> 'a) : SqliteDb<'a> =
-    //    SqliteDb <| fun conn -> 
-    //        try 
-    //            let cmd : SQLiteCommand = new SQLiteCommand(statement, conn)
-    //            let reader = cmd.ExecuteReader()
-    //            if reader.Read() then
-    //                let ans = proc reader
-    //                let hasMore =  reader.Read()
-    //                reader.Close()
-    //                if not hasMore then
-    //                    Ok <| ans
-    //                else 
-    //                    Err <| "execReaderSingleton - too many results."
-    //            else
-    //                reader.Close ()
-    //                Err <| "execReaderSingleton - no results."
-    //        with
-    //        | ex -> Err(ex.ToString())
-
-
-
-
-    //let withTransactionList (values:'a list) (proc1:'a -> SqliteDb<'b>) : SqliteDb<'b list> = 
-    //    withTransaction (forM values proc1)
-
-
-    //let withTransactionListSum (values:'a list) (proc1:'a -> SqliteDb<int>) : SqliteDb<int> = 
-    //    fmapM (List.sum) <| withTransactionList values proc1
-
-
-    //let withTransactionSeq (values:seq<'a>) (proc1:'a -> SqliteDb<'b>) : SqliteDb<seq<'b>> = 
-    //    withTransaction (traverseM proc1 values)
-    
-    //let withTransactionSeqSum (values:seq<'a>) (proc1:'a -> SqliteDb<int>) : SqliteDb<int> = 
-    //    fmapM (Seq.sum) <| withTransactionSeq values proc1
 
 
     // ************************************************************************
     // "Prepackaged" SQL and helpers 
 
-    let createDatabase (dbPath : string) : Result<unit, exn> = 
-        try 
-            SQLite.SQLiteConnection.CreateFile (databaseFileName = dbPath) |> Ok
-        with
-        | ex -> Error ex
+    
 
     /// Run a ``DELETE FROM`` query
-    /// To do this should check that tableName is a simple identity, isn't a system table etc.
+    /// To do this should check that tableName is a simple identifier, 
+    /// that it isn't a system table etc.
     let scDeleteFrom (tableName:string) : SqliteDb<int> = 
         let sql = sprintf "DELETE FROM %s" tableName
         let command = new SQLiteCommand(commandText = sql)

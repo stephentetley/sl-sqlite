@@ -44,3 +44,8 @@ module Utils =
     // This functionality is not availiable through System.Data.SQLite
 
 
+    let createDatabase (dbPath : string) : Result<unit, exn> = 
+        try 
+            SQLite.SQLiteConnection.CreateFile (databaseFileName = dbPath) |> Ok
+        with
+        | ex -> Error ex
