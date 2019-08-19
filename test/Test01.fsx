@@ -105,6 +105,26 @@ let demo04 () =
                 return xs
             }
 
+let demo04a () = 
+    let dbPath = localFile @"output\authors.sqlite"
+    let connParams = sqliteConnParamsVersion3 dbPath
+    let conn = new SQLiteConnection(connParams.ConnectionString)
+    conn.Open()
+    let sql = @"INSERT INTO authors(name, country) VALUES (?,?)"
+    let command = 
+        new SQLiteCommand(commandText = sql, connection = conn)
+
+    let p1 = new SQLiteParameter(dbType = DbType.String)
+    p1.Value <- "Jean Echenoz"
+    command.Parameters.Add (parameter = p1)  |> printfn "%O"
+
+    let p2 = new SQLiteParameter(dbType = DbType.String)
+    p2.Value <- "France"
+    command.Parameters.Add (parameter = p2) |> printfn "%O"
+    let ans = command.ExecuteNonQuery ()
+    conn.Close () 
+    ans
+
 let demo05 () = 
     let dbPath = localFile @"output\authors.sqlite"
     let connParams = sqliteConnParamsVersion3 dbPath
@@ -118,26 +138,7 @@ let demo05 () =
         <| sqliteDb { 
                 return! executeReader query1 (readerReadAll readRow1)
             }
-    
-let demo04a () = 
-    let dbPath = localFile @"output\authors.sqlite"
-    let connParams = sqliteConnParamsVersion3 dbPath
-    let conn = new SQLiteConnection(connParams.ConnectionString)
-    conn.Open()
-    let sql = @"INSERT INTO authors(name, country) VALUES (?,?)"
-    let command = 
-        new SQLiteCommand(commandText = sql, connection = conn)
-    
-    let p1 = new SQLiteParameter(dbType = DbType.String)
-    p1.Value <- "Jean Echenoz"
-    command.Parameters.Add (parameter = p1)  |> printfn "%O"
 
-    let p2 = new SQLiteParameter(dbType = DbType.String)
-    p2.Value <- "France"
-    command.Parameters.Add (parameter = p2) |> printfn "%O"
-    let ans = command.ExecuteNonQuery ()
-    conn.Close () 
-    ans
 
 // run after demo01 ; demo03
 let demo06 () = 
@@ -157,4 +158,21 @@ let demo06 () =
                 let! a = attempt (dbInsert ("Enrique Vila-Matas", "Spain")) 
                                  (fun _msg -> throwError "Failed on Enrique Vila-Matas")
                 return a
+            }
+
+let demo07 () = 
+    let dbPath = localFile @"output\authors.sqlite"
+    let connParams = sqliteConnParamsVersion3 dbPath
+    let query1 = new SQLiteCommand "SELECT * FROM authors;"    
+    let readRow1 (longest :string) (reader : RowReader) : string = 
+        let name = reader.GetString(0)
+        if name.Length > longest.Length then 
+            name
+        else
+            longest
+
+
+    runSqliteDb connParams 
+        <| sqliteDb { 
+                return! executeReader query1 (readerFoldAll readRow1 "")
             }

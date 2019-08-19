@@ -487,7 +487,18 @@ module SqliteMonad =
             work (fun x -> Error x) (fun x -> Ok x)
 
             
-
+    let readerFoldAll (proc : 'state -> RowReader ->  'state) 
+                      (stateZero : 'state) : SQLite.SQLiteDataReader -> Result<'state, ErrMsg> = 
+        fun reader -> 
+            let rec work st fk sk = 
+                match reader.Read () with
+                | false -> sk st
+                | true -> 
+                    match applyRowReader (proc st) reader with
+                    | Error msg -> fk msg
+                    | Ok st1 -> 
+                        work st1 fk sk
+            work stateZero (fun x -> Error x) (fun x -> Ok x)
   
 
 

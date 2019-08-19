@@ -196,7 +196,8 @@ module Wrappers =
     let addNamedParam (paramName : string) (value : SQLiteParameter) (command : KeyedCommand) : KeyedCommand = 
         command.AddWithValue(paramName, value)
 
-    
+    /// Note the query must use anonymous holes (?).
+    /// Named holes (prefixed with a colon) are not recognized - use KeyedCommand instead.
     type IndexedCommand = 
         val private CmdObj : SQLiteCommand
         val private RevParams : SQLiteParameter list
