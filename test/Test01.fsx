@@ -176,3 +176,33 @@ let demo07 () =
         <| sqliteDb { 
                 return! executeReader query1 (readerFoldAll readRow1 "")
             }
+
+
+
+let demo08 () = 
+    let dbPath = localFile @"output\authors.sqlite"
+    let connParams = sqliteConnParamsVersion3 dbPath
+    let query1 = new SQLiteCommand "SELECT 1000 AS [HighScore];"    
+    let readRow1 (reader : RowReader) : int64 = 
+        reader.GetInt64(0)
+
+    runSqliteDb connParams 
+        <| sqliteDb { 
+                return! executeReader query1 (readerReadAll readRow1)
+            }
+
+// This style of query would be a candidate for Prepare...
+let demo08a () = 
+    let dbPath = localFile @"output\authors.sqlite"
+    let connParams = sqliteConnParamsVersion3 dbPath
+    let cmd = new SQLiteCommand "SELECT :author1 AS [Author];" 
+    
+    cmd.Parameters.AddWithValue(parameterName ="author1", value = box "Jean-Phillipe Toussaint") |> ignore
+
+    let readRow1 (reader : RowReader) : string = 
+        reader.GetString(0)
+
+    runSqliteDb connParams 
+        <| sqliteDb { 
+                return! executeReader cmd (readerReadAll readRow1)
+            }
