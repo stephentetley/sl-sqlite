@@ -37,6 +37,29 @@ module Wrappers =
         member x.IsDBNull(i : int) : bool = 
             let (RowReader reader) = x in reader.IsDBNull(i)
 
+        member x.FieldCount 
+            with get () : int = let (RowReader reader) = x in reader.FieldCount
+
+        member x.HasRows 
+            with get () : bool = let (RowReader reader) = x in reader.HasRows
+
+
+        // Get values...
+        
+        member x.Item
+            with get (i : int) : obj = let (RowReader reader) = x in reader.Item(i)
+
+        member x.Item
+            with get (name : string) : obj = let (RowReader reader) = x in reader.Item(name)                   
+
+        //member x.TryGetItem (i : int) : obj option = 
+        //    let (RowReader reader) = x in
+        //    try 
+        //        reader.Item(i) |> Some
+        //    with
+        //    | _ -> None
+                
+
 
         member x.GetBlob(i : int, readOnly : bool) : SQLiteBlob = 
             let (RowReader reader) = x in reader.GetBlob(i, readOnly)
@@ -143,7 +166,6 @@ module Wrappers =
         member x.GetString(i : int) : string = 
             let (RowReader reader) = x in reader.GetString(i)
 
-        
         member x.TryGetString(i : int) : string option = 
             let (RowReader reader) = x in 
                 if reader.IsDBNull(i) then

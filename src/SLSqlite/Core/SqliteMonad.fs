@@ -473,6 +473,7 @@ module SqliteMonad =
         mapiMz fn xs
 
 
+    // TODO - these might be seen as 'strategies' 
    
     let readerReadAll (proc : RowReader -> 'a) : SQLite.SQLiteDataReader -> Result<'a list, ErrMsg> = 
         fun reader -> 

@@ -34,6 +34,11 @@ open SLSqlite.Utils
 let localFile (relpath : string) = 
     Path.Combine(__SOURCE_DIRECTORY__, "..", relpath)
 
+
+let authorConnectionSettings () : SqliteConnParams =
+    let dbPath = localFile @"output\authors.sqlite"
+    sqliteConnParamsVersion3 dbPath
+
 let demo01 () = 
     let dbPath = localFile @"output\authors.sqlite"
     let connParams = sqliteConnParamsVersion3 dbPath
@@ -193,8 +198,7 @@ let demo08 () =
 
 // This style of query would be a candidate for Prepare...
 let demo08a () = 
-    let dbPath = localFile @"output\authors.sqlite"
-    let connParams = sqliteConnParamsVersion3 dbPath
+    let connSettings = authorConnectionSettings ()
     let cmd = new SQLiteCommand "SELECT :author1 AS [Author];" 
     
     cmd.Parameters.AddWithValue(parameterName ="author1", value = box "Jean-Phillipe Toussaint") |> ignore
@@ -202,7 +206,21 @@ let demo08a () =
     let readRow1 (reader : RowReader) : string = 
         reader.GetString(0)
 
-    runSqliteDb connParams 
+    runSqliteDb connSettings 
+        <| sqliteDb { 
+                return! executeReader cmd (readerReadAll readRow1)
+            }
+
+
+// This style of query would be a candidate for Prepare...
+let demo09 () = 
+    let connSettings = authorConnectionSettings ()
+    let cmd = new SQLiteCommand "SELECT * FROM authors;" 
+    
+    let readRow1 (reader : RowReader) : int * string = 
+        reader.FieldCount, reader.Item("name") :?> string
+
+    runSqliteDb connSettings 
         <| sqliteDb { 
                 return! executeReader cmd (readerReadAll readRow1)
             }
