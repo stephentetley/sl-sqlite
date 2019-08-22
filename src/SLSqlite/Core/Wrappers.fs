@@ -25,6 +25,12 @@ module Wrappers =
         | RowReader of SQLiteDataReader
 
 
+        member x.IndexInBounds (i : int) : bool = 
+            let (RowReader reader) = x 
+            i >= 0 && i < reader.FieldCount
+
+        member x.IndexOutOfBounds (i : int) : bool = not <| x.IndexInBounds(i)
+
         member x.GetDataTypeName(i : int) : string = 
             let (RowReader reader) = x in reader.GetDataTypeName(i)
         
@@ -52,21 +58,14 @@ module Wrappers =
         member x.Item
             with get (name : string) : obj = let (RowReader reader) = x in reader.Item(name)                   
 
-        //member x.TryGetItem (i : int) : obj option = 
-        //    let (RowReader reader) = x in
-        //    try 
-        //        reader.Item(i) |> Some
-        //    with
-        //    | _ -> None
-                
-
+        
 
         member x.GetBlob(i : int, readOnly : bool) : SQLiteBlob = 
             let (RowReader reader) = x in reader.GetBlob(i, readOnly)
 
         member x.TryGetBlob(i : int, readOnly : bool) : SQLiteBlob option = 
             let (RowReader reader) = x in 
-                if reader.IsDBNull(i) then
+                if x.IndexOutOfBounds(i) || reader.IsDBNull(i) then
                     None 
                 else 
                     reader.GetBlob(i, readOnly) |> Some
@@ -77,7 +76,7 @@ module Wrappers =
 
         member x.TryGetBoolean(i : int) : bool option = 
             let (RowReader reader) = x in 
-                if reader.IsDBNull(i) then
+                if x.IndexOutOfBounds(i) || reader.IsDBNull(i) then
                     None 
                 else 
                     reader.GetBoolean(i) |> Some
@@ -88,7 +87,7 @@ module Wrappers =
 
         member x.TryGetByte(i : int) : byte option = 
             let (RowReader reader) = x in 
-                if reader.IsDBNull(i) then
+                if x.IndexOutOfBounds(i) || reader.IsDBNull(i) then
                     None 
                 else 
                     reader.GetByte(i) |> Some
@@ -98,7 +97,7 @@ module Wrappers =
 
         member x.TryGetDateTime(i : int) : System.DateTime option = 
             let (RowReader reader) = x in 
-                if reader.IsDBNull(i) then
+                if x.IndexOutOfBounds(i) || reader.IsDBNull(i) then
                     None 
                 else 
                     reader.GetDateTime(i) |> Some
@@ -108,7 +107,7 @@ module Wrappers =
         
         member x.TryGetDecimal(i : int) : decimal option = 
             let (RowReader reader) = x in 
-                if reader.IsDBNull(i) then
+                if x.IndexOutOfBounds(i) || reader.IsDBNull(i) then
                     None 
                 else 
                     reader.GetDecimal(i) |> Some
@@ -118,7 +117,7 @@ module Wrappers =
         
         member x.TryGetDouble(i : int) : double option = 
             let (RowReader reader) = x in 
-                if reader.IsDBNull(i) then
+                if x.IndexOutOfBounds(i) || reader.IsDBNull(i) then
                     None 
                 else 
                     reader.GetDouble(i) |> Some
@@ -128,7 +127,7 @@ module Wrappers =
 
         member x.TryGetFloat(i : int) : single option = 
             let (RowReader reader) = x in 
-                if reader.IsDBNull(i) then
+                if x.IndexOutOfBounds(i) || reader.IsDBNull(i) then
                     None 
                 else 
                     reader.GetFloat(i) |> Some
@@ -138,7 +137,7 @@ module Wrappers =
 
         member x.TryGetInt16(i : int) : int16 option = 
             let (RowReader reader) = x in 
-                if reader.IsDBNull(i) then
+                if x.IndexOutOfBounds(i) || reader.IsDBNull(i) then
                     None 
                 else 
                     reader.GetInt16(i) |> Some
@@ -148,7 +147,7 @@ module Wrappers =
 
         member x.TryGetInt32(i : int) : int32 option = 
             let (RowReader reader) = x in 
-                if reader.IsDBNull(i) then
+                if x.IndexOutOfBounds(i) || reader.IsDBNull(i) then
                     None 
                 else 
                     reader.GetInt32(i) |> Some
@@ -158,7 +157,7 @@ module Wrappers =
         
         member x.TryGetInt64(i : int) : int64 option = 
             let (RowReader reader) = x in 
-                if reader.IsDBNull(i) then
+                if x.IndexOutOfBounds(i) || reader.IsDBNull(i) then
                     None 
                 else 
                     reader.GetInt64(i) |> Some
@@ -168,7 +167,7 @@ module Wrappers =
 
         member x.TryGetString(i : int) : string option = 
             let (RowReader reader) = x in 
-                if reader.IsDBNull(i) then
+                if x.IndexOutOfBounds(i) || reader.IsDBNull(i) then
                     None 
                 else 
                     reader.GetString(i) |> Some
@@ -178,11 +177,23 @@ module Wrappers =
         
         member x.TryGetValue(i : int) : obj option = 
             let (RowReader reader) = x in 
-                if reader.IsDBNull(i) then
+                if x.IndexOutOfBounds(i) || reader.IsDBNull(i) then
                     None 
                 else 
                     reader.GetValue(i) |> Some
 
+        member x.ValueByName (field : string) : obj =
+            let (RowReader reader) = x 
+            let ix = reader.GetOrdinal(field)
+            reader.GetValue(ix)
+
+        member x.TryValueByName (field : string) : obj option =
+            let (RowReader reader) = x 
+            let ix = reader.GetOrdinal(field)
+            if x.IndexOutOfBounds(ix) || reader.IsDBNull(ix) then
+                None 
+            else 
+                reader.GetValue(ix) |> Some
         
 
     let internal applyRowReader (proc : RowReader -> 'a) (handle : SQLiteDataReader) : Result<'a, string> = 
@@ -318,10 +329,14 @@ module Wrappers =
         param1
 
     /// F# string mapped to DbType.String
+    /// FSharps string type can contain `null` - this is mapped to DB null
     let stringParam (value : string) : SQLiteParameter = 
-        let param1 = new SQLiteParameter(dbType = DbType.String)
-        param1.Value <- value
-        param1
+        match value with 
+        | null -> nullParam ()
+        | _ -> 
+            let param1 = new SQLiteParameter(dbType = DbType.String)
+            param1.Value <- value
+            param1
 
     /// F# uint16 mapped to DbType.UInt16
     let uint16Param (value : uint16) : SQLiteParameter = 

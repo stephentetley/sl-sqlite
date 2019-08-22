@@ -224,3 +224,16 @@ let demo09 () =
         <| sqliteDb { 
                 return! executeReader cmd (readerReadAll readRow1)
             }
+
+
+let demo10 () = 
+    let connSettings = authorConnectionSettings ()
+    let cmd = new SQLiteCommand "SELECT NULL AS name, NULL AS country;" 
+    
+    let readRow1 (reader : RowReader) : string option * string option = 
+        reader.TryGetString(0), reader.TryGetString(1)
+
+    runSqliteDb connSettings 
+        <| sqliteDb { 
+                return! executeReader cmd (readerReadAll readRow1)
+            }
