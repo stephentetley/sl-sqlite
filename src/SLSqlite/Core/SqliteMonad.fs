@@ -155,6 +155,23 @@ module SqliteMonad =
             reader.Close()
             ans
 
+    let executeReaderKeyed (cmd : KeyedCommand) 
+                           (proc : SQLite.SQLiteDataReader -> Result<'a, ErrMsg>) : SqliteDb<'a> =
+        SqliteDb <| fun conn -> 
+            let command = cmd.GetSQLiteCommand(conn)
+            let reader : SQLiteDataReader = command.ExecuteReader()
+            let ans = proc reader
+            reader.Close()
+            ans
+
+    let executeReaderIndexed (cmd : IndexedCommand) 
+                             (proc : SQLite.SQLiteDataReader -> Result<'a, ErrMsg>) : SqliteDb<'a> =
+        SqliteDb <| fun conn -> 
+            let command = cmd.GetSQLiteCommand(conn)
+            let reader : SQLiteDataReader = command.ExecuteReader()
+            let ans = proc reader
+            reader.Close()
+            ans
 
     let withTransaction (ma : SqliteDb<'a>) : SqliteDb<'a> = 
         SqliteDb <| fun conn -> 

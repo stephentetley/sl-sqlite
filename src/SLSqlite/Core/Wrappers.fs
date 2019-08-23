@@ -22,7 +22,7 @@ module Wrappers =
     /// the row reading functions.
     [<Struct>]
     type RowReader = 
-        | RowReader of SQLiteDataReader
+        internal | RowReader of SQLiteDataReader
 
 
         member x.IndexInBounds (i : int) : bool = 
