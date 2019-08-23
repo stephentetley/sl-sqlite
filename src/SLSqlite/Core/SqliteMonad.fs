@@ -173,6 +173,25 @@ module SqliteMonad =
             reader.Close()
             ans
 
+    let queryIndexed (cmd : IndexedCommand) 
+                     (strategy : Strategy<'ans>) : SqliteDb<'ans> = 
+        SqliteDb <| fun conn -> 
+            let command = cmd.GetSQLiteCommand(conn)
+            let reader : SQLiteDataReader = command.ExecuteReader()
+            let ans = applyStrategy strategy reader
+            reader.Close()
+            ans
+    
+    let queryKeyed (cmd : KeyedCommand) 
+                   (strategy : Strategy<'ans>) : SqliteDb<'ans> = 
+        SqliteDb <| fun conn -> 
+            let command = cmd.GetSQLiteCommand(conn)
+            let reader : SQLiteDataReader = command.ExecuteReader()
+            let ans = applyStrategy strategy reader
+            reader.Close()
+            ans
+
+
     let withTransaction (ma : SqliteDb<'a>) : SqliteDb<'a> = 
         SqliteDb <| fun conn -> 
             let trans = conn.BeginTransaction(System.Data.IsolationLevel.ReadCommitted)
@@ -492,7 +511,7 @@ module SqliteMonad =
 
     // TODO - these might be seen as 'strategies' 
    
-    let readerReadAll (proc : RowReader -> 'a) : SQLite.SQLiteDataReader -> Result<'a list, ErrMsg> = 
+    let readerReadAll (proc : ResultItem -> 'a) : SQLite.SQLiteDataReader -> Result<'a list, ErrMsg> = 
         fun reader -> 
             let rec work fk sk = 
                 match reader.Read () with
@@ -505,7 +524,7 @@ module SqliteMonad =
             work (fun x -> Error x) (fun x -> Ok x)
 
             
-    let readerFoldAll (proc : 'state -> RowReader ->  'state) 
+    let readerFoldAll (proc : 'state -> ResultItem ->  'state) 
                       (stateZero : 'state) : SQLite.SQLiteDataReader -> Result<'state, ErrMsg> = 
         fun reader -> 
             let rec work st fk sk = 

@@ -15,56 +15,58 @@ module Wrappers =
 
     open System.Data.SQLite
 
+
+    type ErrMsg = string
     
     /// Using SQLite's SQLiteDataReader directly is too often permissive 
     /// as it grants access to both the traversal and the current row.
     /// Potentially we want to wrap SQLiteDataReader and just expose 
     /// the row reading functions.
     [<Struct>]
-    type RowReader = 
-        internal | RowReader of SQLiteDataReader
+    type ResultItem = 
+        internal | ResultItem of SQLiteDataReader
 
 
         member x.IndexInBounds (i : int) : bool = 
-            let (RowReader reader) = x 
+            let (ResultItem reader) = x 
             i >= 0 && i < reader.FieldCount
 
         member x.IndexOutOfBounds (i : int) : bool = not <| x.IndexInBounds(i)
 
         member x.GetDataTypeName(i : int) : string = 
-            let (RowReader reader) = x in reader.GetDataTypeName(i)
+            let (ResultItem reader) = x in reader.GetDataTypeName(i)
         
         member x.GetName(i : int) : string = 
-            let (RowReader reader) = x in reader.GetName(i)
+            let (ResultItem reader) = x in reader.GetName(i)
 
         member x.GetOrdinal(name : string) : int = 
-            let (RowReader reader) = x in reader.GetOrdinal(name)
+            let (ResultItem reader) = x in reader.GetOrdinal(name)
 
         member x.IsDBNull(i : int) : bool = 
-            let (RowReader reader) = x in reader.IsDBNull(i)
+            let (ResultItem reader) = x in reader.IsDBNull(i)
 
         member x.FieldCount 
-            with get () : int = let (RowReader reader) = x in reader.FieldCount
+            with get () : int = let (ResultItem reader) = x in reader.FieldCount
 
         member x.HasRows 
-            with get () : bool = let (RowReader reader) = x in reader.HasRows
+            with get () : bool = let (ResultItem reader) = x in reader.HasRows
 
 
         // Get values...
         
         member x.Item
-            with get (i : int) : obj = let (RowReader reader) = x in reader.Item(i)
+            with get (i : int) : obj = let (ResultItem reader) = x in reader.Item(i)
 
         member x.Item
-            with get (name : string) : obj = let (RowReader reader) = x in reader.Item(name)                   
+            with get (name : string) : obj = let (ResultItem reader) = x in reader.Item(name)                   
 
         
 
         member x.GetBlob(i : int, readOnly : bool) : SQLiteBlob = 
-            let (RowReader reader) = x in reader.GetBlob(i, readOnly)
+            let (ResultItem reader) = x in reader.GetBlob(i, readOnly)
 
         member x.TryGetBlob(i : int, readOnly : bool) : SQLiteBlob option = 
-            let (RowReader reader) = x in 
+            let (ResultItem reader) = x in 
                 if x.IndexOutOfBounds(i) || reader.IsDBNull(i) then
                     None 
                 else 
@@ -72,123 +74,123 @@ module Wrappers =
 
 
         member x.GetBoolean(i : int) : bool = 
-            let (RowReader reader) = x in reader.GetBoolean(i)
+            let (ResultItem reader) = x in reader.GetBoolean(i)
 
         member x.TryGetBoolean(i : int) : bool option = 
-            let (RowReader reader) = x in 
+            let (ResultItem reader) = x in 
                 if x.IndexOutOfBounds(i) || reader.IsDBNull(i) then
                     None 
                 else 
                     reader.GetBoolean(i) |> Some
 
         member x.GetByte(i : int) : byte = 
-            let (RowReader reader) = x in reader.GetByte(i)
+            let (ResultItem reader) = x in reader.GetByte(i)
         
 
         member x.TryGetByte(i : int) : byte option = 
-            let (RowReader reader) = x in 
+            let (ResultItem reader) = x in 
                 if x.IndexOutOfBounds(i) || reader.IsDBNull(i) then
                     None 
                 else 
                     reader.GetByte(i) |> Some
 
         member x.GetDateTime(i : int) : System.DateTime = 
-            let (RowReader reader) = x in reader.GetDateTime(i)
+            let (ResultItem reader) = x in reader.GetDateTime(i)
 
         member x.TryGetDateTime(i : int) : System.DateTime option = 
-            let (RowReader reader) = x in 
+            let (ResultItem reader) = x in 
                 if x.IndexOutOfBounds(i) || reader.IsDBNull(i) then
                     None 
                 else 
                     reader.GetDateTime(i) |> Some
 
         member x.GetDecimal(i : int) : decimal = 
-            let (RowReader reader) = x in reader.GetDecimal(i)
+            let (ResultItem reader) = x in reader.GetDecimal(i)
         
         member x.TryGetDecimal(i : int) : decimal option = 
-            let (RowReader reader) = x in 
+            let (ResultItem reader) = x in 
                 if x.IndexOutOfBounds(i) || reader.IsDBNull(i) then
                     None 
                 else 
                     reader.GetDecimal(i) |> Some
 
         member x.GetDouble(i : int) : double = 
-            let (RowReader reader) = x in reader.GetDouble(i)
+            let (ResultItem reader) = x in reader.GetDouble(i)
         
         member x.TryGetDouble(i : int) : double option = 
-            let (RowReader reader) = x in 
+            let (ResultItem reader) = x in 
                 if x.IndexOutOfBounds(i) || reader.IsDBNull(i) then
                     None 
                 else 
                     reader.GetDouble(i) |> Some
 
         member x.GetFloat(i : int) : single = 
-            let (RowReader reader) = x in reader.GetFloat(i)
+            let (ResultItem reader) = x in reader.GetFloat(i)
 
         member x.TryGetFloat(i : int) : single option = 
-            let (RowReader reader) = x in 
+            let (ResultItem reader) = x in 
                 if x.IndexOutOfBounds(i) || reader.IsDBNull(i) then
                     None 
                 else 
                     reader.GetFloat(i) |> Some
 
         member x.GetInt16(i : int) : int16 = 
-            let (RowReader reader) = x in reader.GetInt16(i)
+            let (ResultItem reader) = x in reader.GetInt16(i)
 
         member x.TryGetInt16(i : int) : int16 option = 
-            let (RowReader reader) = x in 
+            let (ResultItem reader) = x in 
                 if x.IndexOutOfBounds(i) || reader.IsDBNull(i) then
                     None 
                 else 
                     reader.GetInt16(i) |> Some
 
         member x.GetInt32(i : int) : int32 = 
-            let (RowReader reader) = x in reader.GetInt32(i)
+            let (ResultItem reader) = x in reader.GetInt32(i)
 
         member x.TryGetInt32(i : int) : int32 option = 
-            let (RowReader reader) = x in 
+            let (ResultItem reader) = x in 
                 if x.IndexOutOfBounds(i) || reader.IsDBNull(i) then
                     None 
                 else 
                     reader.GetInt32(i) |> Some
 
         member x.GetInt64(i : int) : int64 = 
-            let (RowReader reader) = x in reader.GetInt64(i)
+            let (ResultItem reader) = x in reader.GetInt64(i)
         
         member x.TryGetInt64(i : int) : int64 option = 
-            let (RowReader reader) = x in 
+            let (ResultItem reader) = x in 
                 if x.IndexOutOfBounds(i) || reader.IsDBNull(i) then
                     None 
                 else 
                     reader.GetInt64(i) |> Some
 
         member x.GetString(i : int) : string = 
-            let (RowReader reader) = x in reader.GetString(i)
+            let (ResultItem reader) = x in reader.GetString(i)
 
         member x.TryGetString(i : int) : string option = 
-            let (RowReader reader) = x in 
+            let (ResultItem reader) = x in 
                 if x.IndexOutOfBounds(i) || reader.IsDBNull(i) then
                     None 
                 else 
                     reader.GetString(i) |> Some
 
         member x.GetValue(i : int) : obj = 
-            let (RowReader reader) = x in reader.GetValue(i)
+            let (ResultItem reader) = x in reader.GetValue(i)
         
         member x.TryGetValue(i : int) : obj option = 
-            let (RowReader reader) = x in 
+            let (ResultItem reader) = x in 
                 if x.IndexOutOfBounds(i) || reader.IsDBNull(i) then
                     None 
                 else 
                     reader.GetValue(i) |> Some
 
         member x.ValueByName (field : string) : obj =
-            let (RowReader reader) = x 
+            let (ResultItem reader) = x 
             let ix = reader.GetOrdinal(field)
             reader.GetValue(ix)
 
         member x.TryValueByName (field : string) : obj option =
-            let (RowReader reader) = x 
+            let (ResultItem reader) = x 
             let ix = reader.GetOrdinal(field)
             if x.IndexOutOfBounds(ix) || reader.IsDBNull(ix) then
                 None 
@@ -196,11 +198,70 @@ module Wrappers =
                 reader.GetValue(ix) |> Some
         
 
-    let internal applyRowReader (proc : RowReader -> 'a) (handle : SQLiteDataReader) : Result<'a, string> = 
+    let internal applyRowReader (proc : ResultItem -> 'a) (handle : SQLiteDataReader) : Result<'a, string> = 
         try 
-            proc (RowReader handle) |> Ok
+            proc (ResultItem handle) |> Ok
         with
         | expn -> Error expn.Message
+
+
+    // ************************************************************************
+    // Strategy wraps the interation of a SQLiteDataReader 
+
+    type Strategy<'a> = 
+        internal | Strategy of (SQLiteDataReader -> Result<'a, ErrMsg>)
+
+        static member Map (proc : ResultItem -> 'a) : Strategy<'a list> = 
+            Strategy <| 
+                fun reader -> 
+                let rec work fk sk = 
+                    match reader.Read () with
+                    | false -> sk []
+                    | true -> 
+                        match applyRowReader proc reader with
+                        | Error msg -> fk msg
+                        | Ok a1 -> 
+                            work fk (fun xs -> sk (a1 :: xs))
+                work (fun x -> Error x) (fun x -> Ok x)
+        
+        /// Synonym for Map
+        static member ReadAll (proc : ResultItem -> 'a) : Strategy<'a list> = 
+            Strategy.Map proc
+
+        static member Fold (proc : 'state -> ResultItem ->  'state) 
+                           (stateZero : 'state) : Strategy<'state> = 
+            Strategy <| 
+                fun reader -> 
+                    let rec work st fk sk = 
+                        match reader.Read () with
+                        | false -> sk st
+                        | true -> 
+                            match applyRowReader (proc st) reader with
+                            | Error msg -> fk msg
+                            | Ok st1 -> work st1 fk sk
+                    work stateZero (fun x -> Error x) (fun x -> Ok x)
+
+        static member Head (proc : ResultItem -> 'a) : Strategy<'a> = 
+            Strategy <| 
+                fun reader -> 
+                    match reader.Read () with
+                    | false -> Error "Head - resultset is empty"
+                    | true -> 
+                        match applyRowReader proc reader with
+                        | Error msg -> Error "Head - failed to extract a value"
+                        | Ok a -> Ok a
+
+        
+
+
+
+    let internal applyStrategy (proc : Strategy<'a>) (handle : SQLiteDataReader) : Result<'a, string> = 
+        let (Strategy fn) = proc in fn handle
+        
+
+    // ************************************************************************
+    // KeyedCommand wraps SQLiteCommand 
+
 
     /// Note the query must use named holes (:name).
     /// Question marks are not recognized - use IndexedCommand instead.
@@ -228,6 +289,10 @@ module Wrappers =
             
     let addNamedParam (paramName : string) (value : SQLiteParameter) (command : KeyedCommand) : KeyedCommand = 
         command.AddWithValue(paramName, value)
+
+
+    // ************************************************************************
+    // IndexedCommand wraps SQLiteCommand 
 
     /// Note the query must use anonymous holes (?).
     /// Named holes (prefixed with a colon) are not recognized - use KeyedCommand instead.

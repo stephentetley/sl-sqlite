@@ -46,6 +46,14 @@ let catalogue : (string * string) list =
     ; ("Cherokee", "Jean Echenoz")
     ]
 
+
+
+let runBooksTest (action : SqliteDb<'a>) : Result<'a, ErrMsg> = 
+    let dbPath = localFile @"output\books.sqlite"
+    let connParams = sqliteConnParamsVersion3 dbPath
+    runSqliteDb connParams action
+
+
 let setupDb () = 
     let dbPath = localFile @"output\books.sqlite"
     
@@ -53,8 +61,6 @@ let setupDb () =
     | Error ex -> Error ex.Message
     | Ok _ -> 
 
-        let connParams = sqliteConnParamsVersion3 dbPath
-        
         let dbCreate () : SqliteDb<int> = 
             let sql = 
                 """
@@ -74,31 +80,28 @@ let setupDb () =
                     |> addParam (stringParam author)
             executeNonQueryIndexed cmd
 
-        runSqliteDb connParams 
+        runBooksTest 
             <| sqliteDb { 
                     let! a = dbCreate ()
                     let! b = 
                         if a = 0 then
-                            mapM dbInsert1 catalogue
+                            mapM dbInsert1 catalogue |>> List.sum
                         else
-                            mreturn []
+                            mreturn 0
                     return (a,b)
                 }
 
-let query01 (author : string) : SqliteDb<string list> = 
+let query01 (author : string) : SqliteDb<string> = 
     let sql = 
         """
         SELECT book FROM books WHERE author = ?;
         """
     let cmd = 
         new IndexedCommand (commandText = sql)
-            |> addParam (stringParam "Bae Suah")
+            |> addParam (stringParam author)
 
-    let readRow1 (reader : RowReader) : string = reader.GetString(0)
+    let readRow1 (result : ResultItem) : string = result.GetString(0)
 
-    executeReaderIndexed cmd (readerReadAll readRow1)
+    queryIndexed cmd (Strategy.Head readRow1)
 
-let runBooksTest (action : SqliteDb<'a>) : Result<'a, ErrMsg> = 
-    let dbPath = localFile @"output\books.sqlite"
-    let connParams = sqliteConnParamsVersion3 dbPath
-    runSqliteDb connParams action
+

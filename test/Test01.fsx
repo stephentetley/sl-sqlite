@@ -134,9 +134,9 @@ let demo05 () =
     let dbPath = localFile @"output\authors.sqlite"
     let connParams = sqliteConnParamsVersion3 dbPath
     let query1 = new SQLiteCommand "SELECT * FROM authors;"    
-    let readRow1 (reader : RowReader) : string * string option = 
-        let name = reader.GetString(0)
-        let country = reader.TryGetString(1) 
+    let readRow1 (result : ResultItem) : string * string option = 
+        let name = result.GetString(0)
+        let country = result.TryGetString(1) 
         (name, country)
 
     runSqliteDb connParams 
@@ -169,8 +169,8 @@ let demo07 () =
     let dbPath = localFile @"output\authors.sqlite"
     let connParams = sqliteConnParamsVersion3 dbPath
     let query1 = new SQLiteCommand "SELECT * FROM authors;"    
-    let readRow1 (longest :string) (reader : RowReader) : string = 
-        let name = reader.GetString(0)
+    let readRow1 (longest :string) (result : ResultItem) : string = 
+        let name = result.GetString(0)
         if name.Length > longest.Length then 
             name
         else
@@ -188,8 +188,8 @@ let demo08 () =
     let dbPath = localFile @"output\authors.sqlite"
     let connParams = sqliteConnParamsVersion3 dbPath
     let query1 = new SQLiteCommand "SELECT 1000 AS [HighScore];"    
-    let readRow1 (reader : RowReader) : int64 = 
-        reader.GetInt64(0)
+    let readRow1 (result : ResultItem) : int64 = 
+        result.GetInt64(0)
 
     runSqliteDb connParams 
         <| sqliteDb { 
@@ -203,8 +203,8 @@ let demo08a () =
     
     cmd.Parameters.AddWithValue(parameterName ="author1", value = box "Jean-Phillipe Toussaint") |> ignore
 
-    let readRow1 (reader : RowReader) : string = 
-        reader.GetString(0)
+    let readRow1 (result : ResultItem) : string = 
+        result.GetString(0)
 
     runSqliteDb connSettings 
         <| sqliteDb { 
@@ -217,8 +217,8 @@ let demo09 () =
     let connSettings = authorConnectionSettings ()
     let cmd = new SQLiteCommand "SELECT * FROM authors;" 
     
-    let readRow1 (reader : RowReader) : int * string = 
-        reader.FieldCount, reader.Item("name") :?> string
+    let readRow1 (result : ResultItem) : int * string = 
+        result.FieldCount, result.Item("name") :?> string
 
     runSqliteDb connSettings 
         <| sqliteDb { 
@@ -230,8 +230,8 @@ let demo10 () =
     let connSettings = authorConnectionSettings ()
     let cmd = new SQLiteCommand "SELECT NULL AS name, NULL AS country;" 
     
-    let readRow1 (reader : RowReader) : string option * string option = 
-        reader.TryGetString(0), reader.TryGetString(1)
+    let readRow1 (result : ResultItem) : string option * string option = 
+        result.TryGetString(0), result.TryGetString(1)
 
     runSqliteDb connSettings 
         <| sqliteDb { 
