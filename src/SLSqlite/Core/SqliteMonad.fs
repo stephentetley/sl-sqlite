@@ -63,13 +63,12 @@ module SqliteMonad =
 
 
     
-    let inline private altM  (ma : SqliteDb<unit>) 
-                                 (mb : SqliteDb<'b>) : SqliteDb<'b> = 
+    let inline private altM  (ma : SqliteDb<'a>) 
+                             (mb : SqliteDb<'a>) : SqliteDb<'a> = 
         SqliteDb <| fun conn -> 
-            match apply1 ma conn, apply1 mb conn with
-            | Ok _, Ok b -> Ok b
-            | Error msg, _ -> Error msg
-            | _, Error msg -> Error msg
+            match apply1 ma conn with
+            | Ok a -> Ok a
+            | Error _ -> apply1 mb conn
 
 
     let inline private delayM (fn : unit -> SqliteDb<'a>) : SqliteDb<'a> = 
@@ -337,19 +336,47 @@ module SqliteMonad =
     let ( <??> ) (action : SqliteDb<'a>) (msg : string) : SqliteDb<'a> = 
         swapError msg action
     
-    let augmentError (update : string -> string) (ma:SqliteDb<'a>) : SqliteDb<'a> = 
+    let augmentError (update : string -> string) (action : SqliteDb<'a>) : SqliteDb<'a> = 
         SqliteDb <| fun conn ->
-            match apply1 ma conn with
+            match apply1 action conn with
             | Ok a -> Ok a
             | Error msg -> Error (update msg)
 
     /// Try to run a computation.
     /// On failure, recover or throw again with the handler.
-    let attempt (ma:SqliteDb<'a>) (handler : ErrMsg -> SqliteDb<'a>) : SqliteDb<'a> = 
+    let attempt (action : SqliteDb<'a>) (handler : ErrMsg -> SqliteDb<'a>) : SqliteDb<'a> = 
         SqliteDb <| fun conn ->
-            match apply1 ma conn with
+            match apply1 action conn with
             | Ok a -> Ok a
             | Error msg -> apply1 (handler msg) conn
+
+
+    let optional (action : SqliteDb<'a>) : SqliteDb<'a option> = 
+        attempt (action |>> Some) (fun _ -> mreturn None)
+
+    /// Run an action - return unit whether or not it succeeds
+    let unitAction (action : SqliteDb<'a>) : SqliteDb<unit> = 
+        SqliteDb <| fun conn ->
+            match apply1 action conn with
+            | _ -> Ok ()
+
+
+
+    let (<|>) (action1 : SqliteDb<'a>)  
+              (action2 : SqliteDb<'a>) : SqliteDb<'a> = 
+        altM action1 action2
+
+    let choice (actions : SqliteDb<'a> list) : SqliteDb<'a> = 
+        SqliteDb <| fun conn -> 
+            let rec work acts cont = 
+                match acts with 
+                | [] -> Error "choice"
+                | action1 :: rest ->
+                    match apply1 action1 conn with
+                    | Ok a -> cont (Ok a)
+                    | Error _ -> work rest cont
+            work actions (fun x -> x)
+
 
 
 

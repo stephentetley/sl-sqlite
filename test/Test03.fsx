@@ -94,13 +94,12 @@ let test01 () =
     match createDatabase db with
     | Error ex -> Error ex.Message
     | Ok _ -> 
-        let ans = 
-            runRankTest <| 
-                sqliteDb { 
-                    do! setupDb ()
-                    return! query01 ()
-                }
-        ans
+        runRankTest <| 
+            sqliteDb { 
+                do! setupDb ()
+                return! query01 ()
+            }
+
 
 
 
