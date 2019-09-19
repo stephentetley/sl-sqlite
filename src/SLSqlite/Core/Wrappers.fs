@@ -273,7 +273,15 @@ module Wrappers =
                         | Ok a -> Ok a
 
         
-
+        static member Succeeds (proc : ResultItem -> 'a) : Strategy<bool> = 
+            Strategy <| 
+                fun reader -> 
+                    match reader.Read () with
+                    | false -> Ok false
+                    | true -> 
+                        match applyRowReader proc reader with
+                        | Error _ -> Ok false
+                        | Ok _ -> Ok true
 
 
     let internal applyStrategy (proc : Strategy<'a>) (handle : SQLiteDataReader) : Result<'a, string> = 

@@ -378,7 +378,9 @@ module SqliteMonad =
             work actions (fun x -> x)
 
 
-
+    // Run an action, return true if it succeeds, false if it fails.
+    let succeeds (action : SqliteDb<'a>) : SqliteDb<bool> = 
+        (action |>> fun _ -> true) <|> mreturn false
 
 
     // ************************************************************************
