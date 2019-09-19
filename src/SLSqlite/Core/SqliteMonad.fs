@@ -173,6 +173,17 @@ module SqliteMonad =
             reader.Close()
             ans
 
+
+    let queryCommand (cmd : SQLiteCommand) 
+                     (strategy : Strategy<'ans>) : SqliteDb<'ans> = 
+        SqliteDb <| fun conn -> 
+            cmd.Connection <- conn
+            let reader : SQLiteDataReader = cmd.ExecuteReader()
+            let ans = applyStrategy strategy reader
+            reader.Close()
+            ans
+
+
     let queryIndexed (cmd : IndexedCommand) 
                      (strategy : Strategy<'ans>) : SqliteDb<'ans> = 
         SqliteDb <| fun conn -> 

@@ -18,6 +18,12 @@ module Wrappers =
 
     type ErrMsg = string
     
+    /// Note 
+    /// System.Data.SQLite does not support getting unsigned ints 
+    /// We can get an int64 and cast to uint16 or uint32 but 
+    /// The cast is obviously not safe for uint64
+
+
     /// Using SQLite's SQLiteDataReader directly is too often permissive 
     /// as it grants access to both the traversal and the current row.
     /// Potentially we want to wrap SQLiteDataReader and just expose 
@@ -27,23 +33,23 @@ module Wrappers =
         internal | ResultItem of SQLiteDataReader
 
 
-        member x.IndexInBounds (i : int) : bool = 
+        member x.IndexInBounds (ix : int) : bool = 
             let (ResultItem reader) = x 
-            i >= 0 && i < reader.FieldCount
+            ix >= 0 && ix < reader.FieldCount
 
-        member x.IndexOutOfBounds (i : int) : bool = not <| x.IndexInBounds(i)
+        member x.IndexOutOfBounds (ix : int) : bool = not <| x.IndexInBounds(ix)
 
-        member x.GetDataTypeName(i : int) : string = 
-            let (ResultItem reader) = x in reader.GetDataTypeName(i)
+        member x.GetDataTypeName(ix : int) : string = 
+            let (ResultItem reader) = x in reader.GetDataTypeName(ix)
         
-        member x.GetName(i : int) : string = 
-            let (ResultItem reader) = x in reader.GetName(i)
+        member x.GetName(ix : int) : string = 
+            let (ResultItem reader) = x in reader.GetName(ix)
 
         member x.GetOrdinal(name : string) : int = 
             let (ResultItem reader) = x in reader.GetOrdinal(name)
 
-        member x.IsDBNull(i : int) : bool = 
-            let (ResultItem reader) = x in reader.IsDBNull(i)
+        member x.IsDBNull(ix : int) : bool = 
+            let (ResultItem reader) = x in reader.IsDBNull(ix)
 
         member x.FieldCount 
             with get () : int = let (ResultItem reader) = x in reader.FieldCount
@@ -55,134 +61,149 @@ module Wrappers =
         // Get values...
         
         member x.Item
-            with get (i : int) : obj = let (ResultItem reader) = x in reader.Item(i)
+            with get (ix : int) : obj = let (ResultItem reader) = x in reader.Item(ix)
 
         member x.Item
             with get (name : string) : obj = let (ResultItem reader) = x in reader.Item(name)                   
 
         
 
-        member x.GetBlob(i : int, readOnly : bool) : SQLiteBlob = 
-            let (ResultItem reader) = x in reader.GetBlob(i, readOnly)
+        member x.GetBlob(ix : int, readOnly : bool) : SQLiteBlob = 
+            let (ResultItem reader) = x in reader.GetBlob(ix, readOnly)
 
-        member x.TryGetBlob(i : int, readOnly : bool) : SQLiteBlob option = 
+        member x.TryGetBlob(ix : int, readOnly : bool) : SQLiteBlob option = 
             let (ResultItem reader) = x in 
-                if x.IndexOutOfBounds(i) || reader.IsDBNull(i) then
+                if x.IndexOutOfBounds(ix) || reader.IsDBNull(ix) then
                     None 
                 else 
-                    reader.GetBlob(i, readOnly) |> Some
+                    reader.GetBlob(ix, readOnly) |> Some
 
 
-        member x.GetBoolean(i : int) : bool = 
-            let (ResultItem reader) = x in reader.GetBoolean(i)
+        member x.GetBoolean(ix : int) : bool = 
+            let (ResultItem reader) = x in reader.GetBoolean(ix)
 
-        member x.TryGetBoolean(i : int) : bool option = 
+        member x.TryGetBoolean(ix : int) : bool option = 
             let (ResultItem reader) = x in 
-                if x.IndexOutOfBounds(i) || reader.IsDBNull(i) then
+                if x.IndexOutOfBounds(ix) || reader.IsDBNull(ix) then
                     None 
                 else 
-                    reader.GetBoolean(i) |> Some
+                    reader.GetBoolean(ix) |> Some
 
-        member x.GetByte(i : int) : byte = 
-            let (ResultItem reader) = x in reader.GetByte(i)
+        member x.GetByte(ix : int) : byte = 
+            let (ResultItem reader) = x in reader.GetByte(ix)
         
 
-        member x.TryGetByte(i : int) : byte option = 
+
+        member x.TryGetByte(ix : int) : byte option = 
             let (ResultItem reader) = x in 
-                if x.IndexOutOfBounds(i) || reader.IsDBNull(i) then
+                if x.IndexOutOfBounds(ix) || reader.IsDBNull(ix) then
                     None 
                 else 
-                    reader.GetByte(i) |> Some
+                    reader.GetByte(ix) |> Some
 
-        member x.GetDateTime(i : int) : System.DateTime = 
-            let (ResultItem reader) = x in reader.GetDateTime(i)
+        member x.GetDateTime(ix : int) : System.DateTime = 
+            let (ResultItem reader) = x in reader.GetDateTime(ix)
 
-        member x.TryGetDateTime(i : int) : System.DateTime option = 
+        member x.TryGetDateTime(ix : int) : System.DateTime option = 
             let (ResultItem reader) = x in 
-                if x.IndexOutOfBounds(i) || reader.IsDBNull(i) then
+                if x.IndexOutOfBounds(ix) || reader.IsDBNull(ix) then
                     None 
                 else 
-                    reader.GetDateTime(i) |> Some
+                    reader.GetDateTime(ix) |> Some
 
-        member x.GetDecimal(i : int) : decimal = 
-            let (ResultItem reader) = x in reader.GetDecimal(i)
+        member x.GetDecimal(ix : int) : decimal = 
+            let (ResultItem reader) = x in reader.GetDecimal(ix)
         
-        member x.TryGetDecimal(i : int) : decimal option = 
+        member x.TryGetDecimal(ix : int) : decimal option = 
             let (ResultItem reader) = x in 
-                if x.IndexOutOfBounds(i) || reader.IsDBNull(i) then
+                if x.IndexOutOfBounds(ix) || reader.IsDBNull(ix) then
                     None 
                 else 
-                    reader.GetDecimal(i) |> Some
+                    reader.GetDecimal(ix) |> Some
 
-        member x.GetDouble(i : int) : double = 
-            let (ResultItem reader) = x in reader.GetDouble(i)
+        member x.GetDouble(ix : int) : double = 
+            let (ResultItem reader) = x in reader.GetDouble(ix)
         
-        member x.TryGetDouble(i : int) : double option = 
+        member x.TryGetDouble(ix : int) : double option = 
             let (ResultItem reader) = x in 
-                if x.IndexOutOfBounds(i) || reader.IsDBNull(i) then
+                if x.IndexOutOfBounds(ix) || reader.IsDBNull(ix) then
                     None 
                 else 
-                    reader.GetDouble(i) |> Some
+                    reader.GetDouble(ix) |> Some
 
-        member x.GetFloat(i : int) : single = 
-            let (ResultItem reader) = x in reader.GetFloat(i)
+        member x.GetFloat(ix : int) : single = 
+            let (ResultItem reader) = x in reader.GetFloat(ix)
 
-        member x.TryGetFloat(i : int) : single option = 
+        member x.TryGetFloat(ix : int) : single option = 
             let (ResultItem reader) = x in 
-                if x.IndexOutOfBounds(i) || reader.IsDBNull(i) then
+                if x.IndexOutOfBounds(ix) || reader.IsDBNull(ix) then
                     None 
                 else 
-                    reader.GetFloat(i) |> Some
+                    reader.GetFloat(ix) |> Some
 
-        member x.GetInt16(i : int) : int16 = 
-            let (ResultItem reader) = x in reader.GetInt16(i)
+        member x.GetInt16(ix : int) : int16 = 
+            let (ResultItem reader) = x in reader.GetInt16(ix)
 
-        member x.TryGetInt16(i : int) : int16 option = 
+        member x.TryGetInt16(ix : int) : int16 option = 
             let (ResultItem reader) = x in 
-                if x.IndexOutOfBounds(i) || reader.IsDBNull(i) then
+                if x.IndexOutOfBounds(ix) || reader.IsDBNull(ix) then
                     None 
                 else 
-                    reader.GetInt16(i) |> Some
-
-        member x.GetInt32(i : int) : int32 = 
-            let (ResultItem reader) = x in reader.GetInt32(i)
-
-        member x.TryGetInt32(i : int) : int32 option = 
-            let (ResultItem reader) = x in 
-                if x.IndexOutOfBounds(i) || reader.IsDBNull(i) then
-                    None 
-                else 
-                    reader.GetInt32(i) |> Some
-
-        member x.GetInt64(i : int) : int64 = 
-            let (ResultItem reader) = x in reader.GetInt64(i)
+                    reader.GetInt16(ix) |> Some
         
-        member x.TryGetInt64(i : int) : int64 option = 
+
+        member x.GetInt32(ix : int) : int32 = 
+            let (ResultItem reader) = x in reader.GetInt32(ix)
+
+        member x.TryGetInt32(ix : int) : int32 option = 
             let (ResultItem reader) = x in 
-                if x.IndexOutOfBounds(i) || reader.IsDBNull(i) then
+                if x.IndexOutOfBounds(ix) || reader.IsDBNull(ix) then
                     None 
                 else 
-                    reader.GetInt64(i) |> Some
+                    reader.GetInt32(ix) |> Some
 
-        member x.GetString(i : int) : string = 
-            let (ResultItem reader) = x in reader.GetString(i)
-
-        member x.TryGetString(i : int) : string option = 
-            let (ResultItem reader) = x in 
-                if x.IndexOutOfBounds(i) || reader.IsDBNull(i) then
-                    None 
-                else 
-                    reader.GetString(i) |> Some
-
-        member x.GetValue(i : int) : obj = 
-            let (ResultItem reader) = x in reader.GetValue(i)
+        member x.GetInt64(ix : int) : int64 = 
+            let (ResultItem reader) = x in reader.GetInt64(ix)
         
-        member x.TryGetValue(i : int) : obj option = 
+        member x.TryGetInt64(ix : int) : int64 option = 
             let (ResultItem reader) = x in 
-                if x.IndexOutOfBounds(i) || reader.IsDBNull(i) then
+                if x.IndexOutOfBounds(ix) || reader.IsDBNull(ix) then
                     None 
                 else 
-                    reader.GetValue(i) |> Some
+                    reader.GetInt64(ix) |> Some
+
+        member x.GetUint16(ix : int) : uint16 = 
+            x.GetInt64(ix) |> uint16
+        
+        member x.TryGetUint16(ix : int) : uint16 option = 
+            Option.map uint16 <| x.TryGetInt64(ix)
+
+        member x.GetUint32(ix : int) : uint32 = 
+            x.GetInt64(ix) |> uint32
+        
+        member x.TryGetUint32(ix : int) : uint32 option = 
+            Option.map uint32 <| x.TryGetInt64(ix)
+
+
+        member x.GetString(ix : int) : string = 
+            let (ResultItem reader) = x in reader.GetString(ix)
+
+        member x.TryGetString(ix : int) : string option = 
+            let (ResultItem reader) = x in 
+                if x.IndexOutOfBounds(ix) || reader.IsDBNull(ix) then
+                    None 
+                else 
+                    reader.GetString(ix) |> Some
+
+        member x.GetValue(ix : int) : obj = 
+            let (ResultItem reader) = x in reader.GetValue(ix)
+        
+        member x.TryGetValue(ix : int) : obj option = 
+            let (ResultItem reader) = x in 
+                if x.IndexOutOfBounds(ix) || reader.IsDBNull(ix) then
+                    None 
+                else 
+                    reader.GetValue(ix) |> Some
 
         member x.ValueByName (field : string) : obj =
             let (ResultItem reader) = x 
@@ -374,6 +395,7 @@ module Wrappers =
         let param1 = new SQLiteParameter(dbType = DbType.Int16)
         param1.Value <- value
         param1
+
 
     /// F# int32 mapped to DbType.Int32
     let int32Param (value : int32) : SQLiteParameter = 
