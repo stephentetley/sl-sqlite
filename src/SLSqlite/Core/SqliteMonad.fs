@@ -342,6 +342,9 @@ module SqliteMonad =
             | Ok a -> Ok a
             | Error msg -> Error (update msg)
 
+    // ************************************************************************
+    // Optionals...
+
     /// Try to run a computation.
     /// On failure, recover or throw again with the handler.
     let attempt (action : SqliteDb<'a>) (handler : ErrMsg -> SqliteDb<'a>) : SqliteDb<'a> = 
@@ -350,9 +353,20 @@ module SqliteMonad =
             | Ok a -> Ok a
             | Error msg -> apply1 (handler msg) conn
 
-
+    /// Run a optentially failing action. If it succeeds the answer
+    /// is wrapped in ``Some``. 
+    /// If it fails trap the error and return ``None``.
     let optional (action : SqliteDb<'a>) : SqliteDb<'a option> = 
         attempt (action |>> Some) (fun _ -> mreturn None)
+
+    /// Run an optional action - if it returns ``Some a`` return the 
+    /// answer. If it returns ``None`` the fail.
+    let getOptional (action : SqliteDb<'a option>) : SqliteDb<'a> = 
+        sqliteDb { 
+            match! action with
+            | Some a -> return a
+            | None -> throwError "getOptional - None" |> ignore
+        }
 
     /// Run an action - return unit whether or not it succeeds
     let unitAction (action : SqliteDb<'a>) : SqliteDb<unit> = 
@@ -381,6 +395,148 @@ module SqliteMonad =
     // Run an action, return true if it succeeds, false if it fails.
     let succeeds (action : SqliteDb<'a>) : SqliteDb<bool> = 
         (action |>> fun _ -> true) <|> mreturn false
+
+
+    // ************************************************************************
+    // liftM2 etc
+
+    // liftM (which is fmap)
+    let liftM (fn : 'a -> 'ans) (ma : SqliteDb<'a>) : SqliteDb<'ans> = 
+        fmapM fn ma
+
+    let liftM2 (combine : 'a -> 'b -> 'ans) 
+                (action1 : SqliteDb<'a>) 
+                (action2 : SqliteDb<'b>) : SqliteDb<'ans> = 
+        sqliteDb { 
+            let! a = action1
+            let! b = action2
+            return (combine a b)
+        }
+
+    let liftM3 (combine : 'a -> 'b -> 'c -> 'ans) 
+                (action1 : SqliteDb<'a>) 
+                (action2 : SqliteDb<'b>) 
+                (action3 : SqliteDb<'c>) : SqliteDb<'ans> = 
+        sqliteDb { 
+            let! a = action1
+            let! b = action2
+            let! c = action3
+            return (combine a b c)
+        }
+
+    let liftM4 (combine : 'a -> 'b -> 'c -> 'd -> 'ans) 
+                (action1 : SqliteDb<'a>) 
+                (action2 : SqliteDb<'b>) 
+                (action3 : SqliteDb<'c>) 
+                (action4 : SqliteDb<'d>) : SqliteDb<'ans> = 
+        sqliteDb { 
+            let! a = action1
+            let! b = action2
+            let! c = action3
+            let! d = action4
+            return (combine a b c d)
+        }
+
+
+    let liftM5 (combine : 'a -> 'b -> 'c -> 'd -> 'e -> 'ans) 
+                (action1 : SqliteDb<'a>) 
+                (action2 : SqliteDb<'b>) 
+                (action3 : SqliteDb<'c>) 
+                (action4 : SqliteDb<'d>) 
+                (action5 : SqliteDb<'e>) : SqliteDb<'ans> = 
+        sqliteDb { 
+            let! a = action1
+            let! b = action2
+            let! c = action3
+            let! d = action4
+            let! e = action5
+            return (combine a b c d e)
+        }
+
+    let liftM6 (combine : 'a -> 'b -> 'c -> 'd -> 'e -> 'f -> 'ans) 
+                (action1 : SqliteDb<'a>) 
+                (action2 : SqliteDb<'b>) 
+                (action3 : SqliteDb<'c>) 
+                (action4 : SqliteDb<'d>) 
+                (action5 : SqliteDb<'e>) 
+                (action6 : SqliteDb<'f>) : SqliteDb<'ans> = 
+        sqliteDb { 
+            let! a = action1
+            let! b = action2
+            let! c = action3
+            let! d = action4
+            let! e = action5
+            let! f = action6
+            return (combine a b c d e f)
+        }
+
+    let tupleM2 (action1 : SqliteDb<'a>) 
+                (action2 : SqliteDb<'b>) : SqliteDb<'a * 'b> = 
+        liftM2 (fun a b -> (a,b)) action1 action2
+
+    let tupleM3 (action1 : SqliteDb<'a>) 
+                (action2 : SqliteDb<'b>) 
+                (action3 : SqliteDb<'c>) : SqliteDb<'a * 'b * 'c> = 
+        liftM3 (fun a b c -> (a,b,c)) action1 action2 action3
+
+    let tupleM4 (action1 : SqliteDb<'a>) 
+                (action2 : SqliteDb<'b>) 
+                (action3 : SqliteDb<'c>) 
+                (action4 : SqliteDb<'d>) : SqliteDb<'a * 'b * 'c * 'd> = 
+        liftM4 (fun a b c d -> (a,b,c,d)) action1 action2 action3 action4
+
+    let tupleM5 (action1 : SqliteDb<'a>) 
+                (action2 : SqliteDb<'b>) 
+                (action3 : SqliteDb<'c>) 
+                (action4 : SqliteDb<'d>) 
+                (action5 : SqliteDb<'e>) : SqliteDb<'a * 'b * 'c * 'd * 'e> = 
+        liftM5 (fun a b c d e -> (a,b,c,d,e)) action1 action2 action3 action4 action5
+
+    let tupleM6 (action1 : SqliteDb<'a>) 
+                (action2 : SqliteDb<'b>) 
+                (action3 : SqliteDb<'c>) 
+                (action4 : SqliteDb<'d>) 
+                (action5 : SqliteDb<'e>) 
+                (action6 : SqliteDb<'f>) : SqliteDb<'a * 'b * 'c * 'd * 'e * 'f> = 
+        liftM6 (fun a b c d e f -> (a,b,c,d,e,f)) 
+                action1 action2 action3 action4 action5 action6
+
+
+
+    let pipeM2 (action1 : SqliteDb<'a>) 
+               (action2 : SqliteDb<'b>) 
+               (combine:'a -> 'b -> 'ans) : SqliteDb<'ans> = 
+        liftM2 combine action1 action2
+
+    let pipeM3 (action1 : SqliteDb<'a>) 
+               (action2 : SqliteDb<'b>) 
+               (action3 : SqliteDb<'c>) 
+               (combine : 'a -> 'b -> 'c -> 'ans) : SqliteDb<'ans> = 
+        liftM3 combine action1 action2 action3
+
+    let pipeM4 (action1 : SqliteDb<'a>) 
+               (action2 : SqliteDb<'b>) 
+               (action3 : SqliteDb<'c>) 
+               (action4 : SqliteDb<'d>) 
+               (combine : 'a -> 'b -> 'c -> 'd -> 'ans) : SqliteDb<'ans> = 
+        liftM4 combine action1 action2 action3 action4
+
+    let pipeM5 (action1 : SqliteDb<'a>) 
+               (action2 : SqliteDb<'b>) 
+               (action3 : SqliteDb<'c>) 
+               (action4 : SqliteDb<'d>) 
+               (action5 : SqliteDb<'e>) 
+               (combine : 'a -> 'b -> 'c -> 'd -> 'e -> 'ans) : SqliteDb<'ans> = 
+        liftM5 combine action1 action2 action3 action4 action5
+
+    let pipeM6 (action1 : SqliteDb<'a>) 
+               (action2 : SqliteDb<'b>) 
+               (action3 : SqliteDb<'c>) 
+               (action4 : SqliteDb<'d>) 
+               (action5 : SqliteDb<'e>) 
+               (action6 : SqliteDb<'f>) 
+               (combine : 'a -> 'b -> 'c -> 'd -> 'e -> 'f -> 'ans) : SqliteDb<'ans> = 
+        liftM6 combine action1 action2 action3 action4 action5 action6
 
 
     // ************************************************************************
