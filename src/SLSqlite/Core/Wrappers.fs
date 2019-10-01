@@ -327,11 +327,15 @@ module Wrappers =
     // ************************************************************************
     // Strategy wraps the interation of a SQLiteDataReader 
 
+
     type Strategy<'a> = 
-        internal | Strategy of (SQLiteDataReader -> Result<'a, ErrMsg>)
+        // Note FSharp bug #4185 (use distinct names for type and label)
+        // otherwise we cannot fully type user code and get
+        // "type instantiation" warnings 
+        internal | StrategyProc of (SQLiteDataReader -> Result<'a, ErrMsg>)
 
         static member Map (proc : ResultItem -> 'a) : Strategy<'a list> = 
-            Strategy <| 
+            StrategyProc <| 
                 fun reader -> 
                 let rec work fk sk = 
                     match reader.Read () with
@@ -347,9 +351,9 @@ module Wrappers =
         static member ReadAll (proc : ResultItem -> 'a) : Strategy<'a list> = 
             Strategy.Map proc
 
-        static member Fold (proc : 'state -> ResultItem ->  'state) 
+        static member Fold (proc : 'state -> ResultItem -> 'state) 
                            (stateZero : 'state) : Strategy<'state> = 
-            Strategy <| 
+            StrategyProc <| 
                 fun reader -> 
                     let rec work st fk sk = 
                         match reader.Read () with
@@ -361,7 +365,7 @@ module Wrappers =
                     work stateZero (fun x -> Error x) (fun x -> Ok x)
 
         static member Head (proc : ResultItem -> 'a) : Strategy<'a> = 
-            Strategy <| 
+            StrategyProc <| 
                 fun reader -> 
                     match reader.Read () with
                     | false -> Error "Head - resultset is empty"
@@ -372,7 +376,7 @@ module Wrappers =
 
         
         static member Succeeds (proc : ResultItem -> 'a) : Strategy<bool> = 
-            Strategy <| 
+            StrategyProc <| 
                 fun reader -> 
                     match reader.Read () with
                     | false -> Ok false
@@ -383,7 +387,7 @@ module Wrappers =
 
 
     let internal applyStrategy (proc : Strategy<'a>) (handle : SQLiteDataReader) : Result<'a, string> = 
-        let (Strategy fn) = proc in fn handle
+        let (StrategyProc fn) = proc in fn handle
         
 
     // ************************************************************************
