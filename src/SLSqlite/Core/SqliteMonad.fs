@@ -244,8 +244,8 @@ module SqliteMonad =
         }
 
     /// Operator for apM
-    let ( <**> ) (ma : SqliteDb<'a -> 'b>) 
-                 (mb : SqliteDb<'a>) : SqliteDb<'b> = 
+    let ( <*> ) (ma : SqliteDb<'a -> 'b>) 
+                (mb : SqliteDb<'a>) : SqliteDb<'b> = 
         apM ma mb
 
 

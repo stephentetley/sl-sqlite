@@ -66,10 +66,15 @@ module Wrappers =
         member x.Item
             with get (name : string) : obj = let (ResultItem reader) = x in reader.Item(name)                   
 
-        
+        // GetBlob
 
         member x.GetBlob(ix : int, readOnly : bool) : SQLiteBlob = 
             let (ResultItem reader) = x in reader.GetBlob(ix, readOnly)
+
+        member x.GetBlob(columnName : string, readOnly : bool) : SQLiteBlob = 
+            let ix = x.GetOrdinal(columnName) in x.GetBlob(ix, readOnly)
+            
+
 
         member x.TryGetBlob(ix : int, readOnly : bool) : SQLiteBlob option = 
             let (ResultItem reader) = x in 
@@ -78,9 +83,17 @@ module Wrappers =
                 else 
                     reader.GetBlob(ix, readOnly) |> Some
 
+        member x.TryGetBlob(columnName : string, readOnly : bool) : SQLiteBlob option = 
+            let ix = x.GetOrdinal(columnName) in x.TryGetBlob(ix, readOnly)
+
+        // GetBoolean
 
         member x.GetBoolean(ix : int) : bool = 
             let (ResultItem reader) = x in reader.GetBoolean(ix)
+
+        member x.GetBoolean(columnName : string) : bool = 
+            let ix = x.GetOrdinal(columnName) in x.GetBoolean(ix)
+            
 
         member x.TryGetBoolean(ix : int) : bool option = 
             let (ResultItem reader) = x in 
@@ -88,11 +101,18 @@ module Wrappers =
                     None 
                 else 
                     reader.GetBoolean(ix) |> Some
+        
+        member x.TryGetBoolean(columnName : string) : bool option = 
+            let ix = x.GetOrdinal(columnName) in x.TryGetBoolean(ix)
+
+
+        // Byte
 
         member x.GetByte(ix : int) : byte = 
             let (ResultItem reader) = x in reader.GetByte(ix)
         
-
+        member x.GetByte(columnName : string) : byte = 
+            let ix = x.GetOrdinal(columnName) in x.GetByte(ix)
 
         member x.TryGetByte(ix : int) : byte option = 
             let (ResultItem reader) = x in 
@@ -101,8 +121,16 @@ module Wrappers =
                 else 
                     reader.GetByte(ix) |> Some
 
+        member x.TryGetByte(columnName : string) : byte option = 
+            let ix = x.GetOrdinal(columnName) in x.TryGetByte(ix)
+
+        // DateTime
+
         member x.GetDateTime(ix : int) : System.DateTime = 
             let (ResultItem reader) = x in reader.GetDateTime(ix)
+
+        member x.GetDateTime(columnName : string) : System.DateTime = 
+            let ix = x.GetOrdinal(columnName) in x.GetDateTime(ix)
 
         member x.TryGetDateTime(ix : int) : System.DateTime option = 
             let (ResultItem reader) = x in 
@@ -110,9 +138,17 @@ module Wrappers =
                     None 
                 else 
                     reader.GetDateTime(ix) |> Some
+        
+        member x.TryGetDateTime(columnName : string) : System.DateTime option = 
+            let ix = x.GetOrdinal(columnName) in x.TryGetDateTime(ix)
+
+        // Decimal
 
         member x.GetDecimal(ix : int) : decimal = 
             let (ResultItem reader) = x in reader.GetDecimal(ix)
+
+        member x.GetDecimal(columnName : string) : decimal = 
+            let ix = x.GetOrdinal(columnName) in x.GetDecimal(ix)
         
         member x.TryGetDecimal(ix : int) : decimal option = 
             let (ResultItem reader) = x in 
@@ -121,18 +157,34 @@ module Wrappers =
                 else 
                     reader.GetDecimal(ix) |> Some
 
+        member x.TryGetDecimal(columnName : string) : decimal option = 
+            let ix = x.GetOrdinal(columnName) in x.TryGetDecimal(ix)
+
+        // Double
+
         member x.GetDouble(ix : int) : double = 
             let (ResultItem reader) = x in reader.GetDouble(ix)
         
+        member x.GetDouble(columnName : string) : double = 
+            let ix = x.GetOrdinal(columnName) in x.GetDouble(ix)
+
         member x.TryGetDouble(ix : int) : double option = 
             let (ResultItem reader) = x in 
                 if x.IndexOutOfBounds(ix) || reader.IsDBNull(ix) then
                     None 
                 else 
                     reader.GetDouble(ix) |> Some
+        
+        member x.TryGetDouble(columnName : string) : double option = 
+            let ix = x.GetOrdinal(columnName) in x.TryGetDouble(ix)
 
+        // Float 
+        
         member x.GetFloat(ix : int) : single = 
             let (ResultItem reader) = x in reader.GetFloat(ix)
+
+        member x.GetFloat(columnName : string) : single = 
+            let ix = x.GetOrdinal(columnName) in x.GetFloat(ix)
 
         member x.TryGetFloat(ix : int) : single option = 
             let (ResultItem reader) = x in 
@@ -140,9 +192,17 @@ module Wrappers =
                     None 
                 else 
                     reader.GetFloat(ix) |> Some
+        
+        member x.TryGetFloat(columnName : string) : single option = 
+            let ix = x.GetOrdinal(columnName) in x.TryGetFloat(ix)
+
+        // Int16
 
         member x.GetInt16(ix : int) : int16 = 
             let (ResultItem reader) = x in reader.GetInt16(ix)
+
+        member x.GetInt16(columnName : string) : int16 = 
+            let ix = x.GetOrdinal(columnName) in x.GetInt16(ix)
 
         member x.TryGetInt16(ix : int) : int16 option = 
             let (ResultItem reader) = x in 
@@ -151,9 +211,16 @@ module Wrappers =
                 else 
                     reader.GetInt16(ix) |> Some
         
+        member x.TryGetInt16(columnName : string) : int16 option = 
+            let ix = x.GetOrdinal(columnName) in x.TryGetInt16(ix)
+
+        // Int32
 
         member x.GetInt32(ix : int) : int32 = 
             let (ResultItem reader) = x in reader.GetInt32(ix)
+
+        member x.GetInt32(columnName : string) : int32 = 
+            let ix = x.GetOrdinal(columnName) in x.GetInt32(ix)
 
         member x.TryGetInt32(ix : int) : int32 option = 
             let (ResultItem reader) = x in 
@@ -162,8 +229,16 @@ module Wrappers =
                 else 
                     reader.GetInt32(ix) |> Some
 
+        member x.TryGetInt32(columnName : string) : int32 option = 
+            let ix = x.GetOrdinal(columnName) in x.TryGetInt32(ix)
+
+        // Int64
+
         member x.GetInt64(ix : int) : int64 = 
             let (ResultItem reader) = x in reader.GetInt64(ix)
+
+        member x.GetInt64(columnName : string) : int64 = 
+            let ix = x.GetOrdinal(columnName) in x.GetInt64(ix)
         
         member x.TryGetInt64(ix : int) : int64 option = 
             let (ResultItem reader) = x in 
@@ -172,21 +247,44 @@ module Wrappers =
                 else 
                     reader.GetInt64(ix) |> Some
 
+        member x.TryGetInt64(columnName : string) : int64 option = 
+            let ix = x.GetOrdinal(columnName) in x.TryGetInt64(ix)
+
+        // Uint16
+
         member x.GetUint16(ix : int) : uint16 = 
             x.GetInt64(ix) |> uint16
         
+        member x.GetUint16(columnName : string) : uint16 = 
+            let ix = x.GetOrdinal(columnName) in x.GetUint16(ix)
+
         member x.TryGetUint16(ix : int) : uint16 option = 
             Option.map uint16 <| x.TryGetInt64(ix)
 
+        member x.TryGetUint16(columnName : string) : uint16 option = 
+            let ix = x.GetOrdinal(columnName) in x.TryGetUint16(ix)
+
+        // Uint32
+
         member x.GetUint32(ix : int) : uint32 = 
             x.GetInt64(ix) |> uint32
+
+        member x.GetUint32(columnName : string) : uint32 = 
+            let ix = x.GetOrdinal(columnName) in x.GetUint32(ix)
         
         member x.TryGetUint32(ix : int) : uint32 option = 
             Option.map uint32 <| x.TryGetInt64(ix)
 
+        member x.TryGetUint32(columnName : string) : uint32 option = 
+            let ix = x.GetOrdinal(columnName) in x.TryGetUint32(ix)
+
+        // string
 
         member x.GetString(ix : int) : string = 
             let (ResultItem reader) = x in reader.GetString(ix)
+        
+        member x.GetString(columnName : string) : string = 
+            let ix = x.GetOrdinal(columnName) in x.GetString(ix)
 
         member x.TryGetString(ix : int) : string option = 
             let (ResultItem reader) = x in 
@@ -195,9 +293,17 @@ module Wrappers =
                 else 
                     reader.GetString(ix) |> Some
 
+        member x.TryGetString(columnName : string) : string option = 
+            let ix = x.GetOrdinal(columnName) in x.TryGetString(ix)
+
+        // obj
+
         member x.GetValue(ix : int) : obj = 
             let (ResultItem reader) = x in reader.GetValue(ix)
         
+        member x.GetValue(columnName : string) : obj = 
+            let ix = x.GetOrdinal(columnName) in x.GetValue(ix)
+
         member x.TryGetValue(ix : int) : obj option = 
             let (ResultItem reader) = x in 
                 if x.IndexOutOfBounds(ix) || reader.IsDBNull(ix) then
@@ -205,18 +311,10 @@ module Wrappers =
                 else 
                     reader.GetValue(ix) |> Some
 
-        member x.ValueByName (field : string) : obj =
-            let (ResultItem reader) = x 
-            let ix = reader.GetOrdinal(field)
-            reader.GetValue(ix)
+        member x.TryGetValue(columnName : string) : obj option = 
+            let ix = x.GetOrdinal(columnName) in x.TryGetValue(ix)
 
-        member x.TryValueByName (field : string) : obj option =
-            let (ResultItem reader) = x 
-            let ix = reader.GetOrdinal(field)
-            if x.IndexOutOfBounds(ix) || reader.IsDBNull(ix) then
-                None 
-            else 
-                reader.GetValue(ix) |> Some
+
         
 
     let internal applyRowReader (proc : ResultItem -> 'a) (handle : SQLiteDataReader) : Result<'a, string> = 
