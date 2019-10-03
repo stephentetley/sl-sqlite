@@ -52,7 +52,24 @@ let mysprintf fmt =
     Printf.ksprintf (fun str -> sprintf "HELLO: %s" str) fmt
 
 let throwErrorf fmt = 
-    SqliteDb <| fun _ -> Error (Printf.ksprintf (fun str -> sprintf "HELLO: %s" str) fmt)
+    SqliteDb <| fun _ -> 
+        Error (Printf.ksprintf throwError fmt)
 
+//// Won't compile...
 //let test02 () = 
-//    (throwErrorf "%i" int) |> runRankTest
+//    sqliteDb {
+//        do! (throwErrorf "%i") int
+//        return ()
+//    }
+
+let test03 () = 
+    let action : SqliteDb<unit> = 
+        sqliteDb.Zero() |?%>> ("The error was: %s" : ErrorAugmentFormat)
+    runRankTest action
+
+/// Happily this cannot type the format string and it throws the error
+/// we would want it to...
+//let test04 () = 
+//    let action : SqliteDb<unit> = 
+//        sqliteDb.Zero() |?%>> ("The error was: %i" : ErrorAugmentFormat)
+//    runRankTest action
