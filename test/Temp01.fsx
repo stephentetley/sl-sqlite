@@ -73,3 +73,7 @@ let test03 () =
 //    let action : SqliteDb<unit> = 
 //        sqliteDb.Zero() |?%>> ("The error was: %i" : ErrorAugmentFormat)
 //    runRankTest action
+
+
+let test05 () : Result<unit, ErrMsg> = 
+    getOptional (mreturn None) |> runRankTest 

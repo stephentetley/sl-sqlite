@@ -342,8 +342,6 @@ module SqliteMonad =
 
     /// Version of augment error where you supply a format string with a 
     /// string hole (%s) for the cumulative error.
-    /// At the call site you need to type the format string to 
-    /// ErrorAugmentFormat. 
     let augmentErrorFmt (fmt : ErrorAugmentFormat) (action : SqliteDb<'a>) : SqliteDb<'a> = 
         SqliteDb <| fun conn ->
             match apply1 action conn with
@@ -383,7 +381,7 @@ module SqliteMonad =
         sqliteDb { 
             match! action with
             | Some a -> return a
-            | None -> throwError "getOptional - None" |> ignore
+            | None -> return! throwError "getOptional - None" 
         }
 
     /// Run an action - return unit whether or not it succeeds
