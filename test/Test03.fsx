@@ -108,7 +108,7 @@ let test02 (name : string) =
         SELECT score FROM rank WHERE name = :name;
         """
     let cmd = 
-        new KeyedCommand (commandText = sql)
+        new KeyedCommand (commandText = sql)    
             |> addNamedParam "name" (stringParam name)
 
     let readRow1 (result : ResultItem) = result.GetValue(0)
@@ -116,7 +116,6 @@ let test02 (name : string) =
     let action = queryKeyed cmd (Strategy.Head readRow1) |> succeeds
 
     runRankTest action
-
 
 
 

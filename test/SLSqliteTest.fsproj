@@ -8,6 +8,7 @@
     <None Include="Test01.fsx" />
     <None Include="Test02.fsx" />
     <None Include="Test03.fsx" />
+    <None Include="Temp01.fsx" />
   </ItemGroup>
 
   <ItemGroup />

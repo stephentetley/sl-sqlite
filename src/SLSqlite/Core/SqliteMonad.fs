@@ -58,11 +58,6 @@ module SqliteMonad =
 
     let failM (msg:string) : SqliteDb<'a> = SqliteDb (fun r -> Error msg)
 
-    
-
-
-
-    
     let inline private altM  (ma : SqliteDb<'a>) 
                              (mb : SqliteDb<'a>) : SqliteDb<'a> = 
         SqliteDb <| fun conn -> 
@@ -326,6 +321,7 @@ module SqliteMonad =
     let throwError (msg : string) : SqliteDb<'a> = 
         SqliteDb <| fun _ -> Error msg
 
+
     let swapError (newMessage : string) (ma : SqliteDb<'a>) : SqliteDb<'a> = 
         SqliteDb <| fun conn -> 
             match apply1 ma conn with
@@ -333,7 +329,7 @@ module SqliteMonad =
             | Error _ -> Error newMessage
 
     /// Operator for flip swapError
-    let ( <??> ) (action : SqliteDb<'a>) (msg : string) : SqliteDb<'a> = 
+    let ( <?> ) (action : SqliteDb<'a>) (msg : string) : SqliteDb<'a> = 
         swapError msg action
     
     let augmentError (update : string -> string) (action : SqliteDb<'a>) : SqliteDb<'a> = 
@@ -342,6 +338,24 @@ module SqliteMonad =
             | Ok a -> Ok a
             | Error msg -> Error (update msg)
 
+    /// Version of augment error where you supply a format string with a 
+    /// string hole (%s) for the cumulative error.
+    let augmentErrorFmt (fmt : Printf.StringFormat<string -> string,string>) (action : SqliteDb<'a>) : SqliteDb<'a> = 
+        SqliteDb <| fun conn ->
+            match apply1 action conn with
+            | Ok a -> Ok a
+            | Error msg -> Error (sprintf fmt msg)
+
+    /// Combinator for flip augmentError
+    let ( |?>> ) (action : SqliteDb<'a>) 
+                 (errorModifier : string -> string) : SqliteDb<'a> = 
+        augmentError errorModifier action
+
+    /// Combinator for flip augmentErrorFmt
+    let ( |?%>> ) (action : SqliteDb<'a>) 
+                  (errorModifier : string -> string) : SqliteDb<'a> = 
+        augmentError errorModifier action
+        
     // ************************************************************************
     // Optionals...
 
