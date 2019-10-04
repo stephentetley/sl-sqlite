@@ -77,3 +77,25 @@ let test03 () =
 
 let test05 () : Result<unit, ErrMsg> = 
     getOptional (mreturn None) |> runRankTest 
+
+
+// Should give a runtime failure showing the query
+let test06 () = 
+    let sql = 
+        """
+        SELECT score FROM rank, WHERE name = :name;
+        """
+    let cmd = 
+        new KeyedCommand (commandText = sql)    
+            |> addNamedParam "name" (stringParam "stephen")
+
+    let readRow1 (result : ResultItem) = result.GetValue(0)
+
+    let action = queryKeyed cmd (Strategy.Head readRow1) 
+
+    runRankTest action
+
+
+
+
+

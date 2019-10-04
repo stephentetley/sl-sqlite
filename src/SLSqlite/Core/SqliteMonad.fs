@@ -125,76 +125,133 @@ module SqliteMonad =
             with
             | err -> Error err.Message
 
-    let executeNonQuery (cmd : SQLiteCommand) : SqliteDb<int> = 
-        liftConn <| fun conn -> 
-            cmd.Connection <- conn
-            cmd.ExecuteNonQuery ()
+    let executeNonQuery (command : SQLiteCommand) : SqliteDb<int> = 
+        SqliteDb <| fun conn -> 
+            command.Connection <- conn
+            try
+                command.ExecuteNonQuery () |> Ok
+            with
+            | ex -> 
+                Error <| sprintf "executeNonQuery - %s\nQuery:\n%s" 
+                                    ex.Message 
+                                    command.CommandText
 
-    let executeNonQueryKeyed (cmd : KeyedCommand) : SqliteDb<int> = 
-        liftConn <| fun conn -> 
-            let command = cmd.GetSQLiteCommand(conn)
-            command.ExecuteNonQuery ()
 
-    let executeNonQueryIndexed (cmd : IndexedCommand) : SqliteDb<int> = 
-        liftConn <| fun conn -> 
-            let command = cmd.GetSQLiteCommand(conn)
-            command.ExecuteNonQuery ()
+    let executeNonQueryKeyed (command : KeyedCommand) : SqliteDb<int> = 
+        SqliteDb <| fun conn -> 
+            let cmd = command.GetSQLiteCommand(conn)
+            try 
+                cmd.ExecuteNonQuery () |> Ok
+            with
+            | ex -> 
+                Error <| sprintf "executeNonQueryKeyed - %s\nQuery:\n%s" 
+                                    ex.Message 
+                                    cmd.CommandText
 
-    let executeReader (cmd : SQLiteCommand) 
+    let executeNonQueryIndexed (command : IndexedCommand) : SqliteDb<int> = 
+        SqliteDb <| fun conn -> 
+            let cmd = command.GetSQLiteCommand(conn)
+            try 
+                cmd.ExecuteNonQuery () |> Ok
+            with
+            | ex -> 
+                Error <| sprintf "executeNonQueryIndexed - %s\nQuery:\n%s" 
+                                    ex.Message 
+                                    cmd.CommandText
+
+
+    let executeReader (command : SQLiteCommand) 
                       (proc : SQLite.SQLiteDataReader -> Result<'a, ErrMsg>) : SqliteDb<'a> =
         SqliteDb <| fun conn -> 
-            cmd.Connection <- conn
-            let reader : SQLiteDataReader = cmd.ExecuteReader()
-            let ans = proc reader
-            reader.Close()
-            ans
+            command.Connection <- conn
+            try 
+                let reader : SQLiteDataReader = command.ExecuteReader()
+                let ans = proc reader
+                reader.Close()
+                ans
+            with
+            | ex -> 
+                Error <| sprintf "executeReader - %s\nQuery:\n%s" 
+                                    ex.Message 
+                                    command.CommandText
 
-    let executeReaderKeyed (cmd : KeyedCommand) 
+    let executeReaderKeyed (command : KeyedCommand) 
                            (proc : SQLite.SQLiteDataReader -> Result<'a, ErrMsg>) : SqliteDb<'a> =
         SqliteDb <| fun conn -> 
-            let command = cmd.GetSQLiteCommand(conn)
-            let reader : SQLiteDataReader = command.ExecuteReader()
-            let ans = proc reader
-            reader.Close()
-            ans
+            let cmd = command.GetSQLiteCommand(conn)
+            try
+                let reader : SQLiteDataReader = cmd.ExecuteReader()
+                let ans = proc reader
+                reader.Close()
+                ans
+            with
+            | ex -> 
+                Error <| sprintf "executeReaderKeyed - %s\nQuery:\n%s" 
+                                    ex.Message 
+                                    cmd.CommandText
 
-    let executeReaderIndexed (cmd : IndexedCommand) 
+    let executeReaderIndexed (command : IndexedCommand) 
                              (proc : SQLite.SQLiteDataReader -> Result<'a, ErrMsg>) : SqliteDb<'a> =
         SqliteDb <| fun conn -> 
-            let command = cmd.GetSQLiteCommand(conn)
-            let reader : SQLiteDataReader = command.ExecuteReader()
-            let ans = proc reader
-            reader.Close()
-            ans
+            let cmd = command.GetSQLiteCommand(conn)
+            try                
+                let reader : SQLiteDataReader = cmd.ExecuteReader()
+                let ans = proc reader
+                reader.Close()
+                ans
+            with
+            | ex -> 
+                Error <| sprintf "executeReaderIndexed - %s\nQuery:\n%s" 
+                                  ex.Message 
+                                  cmd.CommandText
 
-
-    let queryCommand (cmd : SQLiteCommand) 
+          
+    let queryCommand (command : SQLiteCommand) 
                      (strategy : Strategy<'ans>) : SqliteDb<'ans> = 
         SqliteDb <| fun conn -> 
-            cmd.Connection <- conn
-            let reader : SQLiteDataReader = cmd.ExecuteReader()
-            let ans = applyStrategy strategy reader
-            reader.Close()
-            ans
+            command.Connection <- conn
+            try
+                let reader : SQLiteDataReader = command.ExecuteReader()
+                let ans = applyStrategy strategy reader
+                reader.Close()
+                ans
+            with
+            | ex -> 
+                Error <| sprintf "queryCommand - %s\nQuery:\n%s" 
+                                    ex.Message 
+                                    command.CommandText
 
 
-    let queryIndexed (cmd : IndexedCommand) 
+    let queryIndexed (command : IndexedCommand) 
                      (strategy : Strategy<'ans>) : SqliteDb<'ans> = 
         SqliteDb <| fun conn -> 
-            let command = cmd.GetSQLiteCommand(conn)
-            let reader : SQLiteDataReader = command.ExecuteReader()
-            let ans = applyStrategy strategy reader
-            reader.Close()
-            ans
+            let cmd = command.GetSQLiteCommand(conn)
+            try
+                let reader : SQLiteDataReader = cmd.ExecuteReader()
+                let ans = applyStrategy strategy reader
+                reader.Close()
+                ans
+            with
+            | ex -> 
+                Error <| sprintf "queryIndexed - %s\nQuery:\n%s" 
+                                    ex.Message 
+                                    cmd.CommandText
     
-    let queryKeyed (cmd : KeyedCommand) 
+    let queryKeyed (command : KeyedCommand) 
                    (strategy : Strategy<'ans>) : SqliteDb<'ans> = 
         SqliteDb <| fun conn -> 
-            let command = cmd.GetSQLiteCommand(conn)
-            let reader : SQLiteDataReader = command.ExecuteReader()
-            let ans = applyStrategy strategy reader
-            reader.Close()
-            ans
+            let cmd = command.GetSQLiteCommand(conn)
+            try
+                let reader : SQLiteDataReader = cmd.ExecuteReader()
+                let ans = applyStrategy strategy reader
+                reader.Close()
+                ans
+            with
+            | ex -> 
+                Error <| sprintf "queryKeyed - %s\nQuery:\n%s" 
+                                    ex.Message 
+                                    cmd.CommandText
+
 
 
     let withTransaction (ma : SqliteDb<'a>) : SqliteDb<'a> = 
@@ -751,22 +808,5 @@ module SqliteMonad =
   
 
 
-
-    // ************************************************************************
-    // "Prepackaged" SQL and helpers 
-
-    
-
-    /// Run a ``DELETE FROM`` query
-    /// To do this should check that tableName is a simple identifier, 
-    /// that it isn't a system table etc.
-    let scDeleteFrom (tableName:string) : SqliteDb<int> = 
-        let sql = sprintf "DELETE FROM %s" tableName
-        let command = new SQLiteCommand(commandText = sql)
-        executeNonQuery command
-
-
-    
-    
 
     
